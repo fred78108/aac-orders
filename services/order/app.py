@@ -10,8 +10,10 @@ from order.api.routes import router
 
 # Import side-effect: registers ORM tables with Base.metadata
 from order.db import models as _models  # noqa: F401
+from order.events.handlers import handle_payment_failed
 from order.settings import settings
 from shared.db import Base
+from shared.messaging import MessageConsumer
 
 
 @asynccontextmanager
@@ -19,13 +21,25 @@ async def lifespan(app: FastAPI):
     engine = create_async_engine(settings.database_url)
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-    app.state.session_factory = async_sessionmaker(
-        engine, expire_on_commit=False
+    session_factory = async_sessionmaker(engine, expire_on_commit=False)
+    app.state.session_factory = session_factory
+    amqp_conn = await aio_pika.connect_robust(settings.rabbitmq_url)
+    app.state.amqp_conn = amqp_conn
+
+    async def on_payment_failed(payload: dict) -> None:
+        await handle_payment_failed(payload, session_factory, amqp_conn)
+
+    consumer = MessageConsumer()
+    await consumer.connect(settings.rabbitmq_url)
+    await consumer.subscribe(
+        "order_payment_failed_q", ["payment.failed"], on_payment_failed
     )
-    app.state.amqp_conn = await aio_pika.connect_robust(settings.rabbitmq_url)
+    await consumer.start()
+    app.state.consumer_payment_failed = consumer
 
     yield
 
+    await consumer.close()
     await app.state.amqp_conn.close()
     await engine.dispose()
 
