@@ -1,0 +1,216 @@
+version: "3.9"
+
+networks:
+  default:
+    name: aac-orders_default
+
+services:
+
+  # ── Ingress ───────────────────────────────────────────────────
+  nginx:
+    image: nginx:1.25-alpine
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - order-service
+
+  # ── Application services ──────────────────────────────────────
+  order-service:
+    build:
+      context: .
+      dockerfile: services/order/Dockerfile
+    ports:
+      - "8001:8001"
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres-orders:5432/orders_db
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      - postgres-orders
+      - rabbitmq
+      - redis
+
+  payment-service:
+    build:
+      context: .
+      dockerfile: services/payment/Dockerfile
+    ports:
+      - "8002:8002"
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres-payments:5432/payments_db
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+    depends_on:
+      - postgres-payments
+      - rabbitmq
+
+  inventory-service:
+    build:
+      context: .
+      dockerfile: services/inventory/Dockerfile
+    ports:
+      - "8003:8003"
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres-inventory:5432/inventory_db
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+    depends_on:
+      - postgres-inventory
+      - rabbitmq
+
+  fulfillment-service:
+    build:
+      context: .
+      dockerfile: services/fulfillment/Dockerfile
+    ports:
+      - "8004:8004"
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres-fulfillment:5432/fulfillment_db
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+    depends_on:
+      - postgres-fulfillment
+      - rabbitmq
+
+  shipping-service:
+    build:
+      context: .
+      dockerfile: services/shipping/Dockerfile
+    ports:
+      - "8005:8005"
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres-shipping:5432/shipping_db
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+    depends_on:
+      - postgres-shipping
+      - rabbitmq
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: services/notification/Dockerfile
+    ports:
+      - "8006:8006"
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres-notifications:5432/notifications_db
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+    depends_on:
+      - postgres-notifications
+      - rabbitmq
+
+  # ── Demo dashboard ────────────────────────────────────────────
+  demo-dashboard:
+    build:
+      context: .
+      dockerfile: demo/Dockerfile
+    ports:
+      - "9000:9000"
+    environment:
+      ORDER_SERVICE_URL: http://order-service:8001
+      PAYMENT_SERVICE_URL: http://payment-service:8002
+      INVENTORY_SERVICE_URL: http://inventory-service:8003
+      FULFILLMENT_SERVICE_URL: http://fulfillment-service:8004
+      SHIPPING_SERVICE_URL: http://shipping-service:8005
+      NOTIFICATION_SERVICE_URL: http://notification-service:8006
+      RABBITMQ_URL: http://rabbitmq:15672
+      ORDER_GATEWAY_URL: http://nginx:80
+    depends_on:
+      - order-service
+      - payment-service
+      - inventory-service
+      - fulfillment-service
+      - shipping-service
+      - notification-service
+      - rabbitmq
+
+  # ── Message broker ────────────────────────────────────────────
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Session cache ─────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  # ── Databases (one per service) ───────────────────────────────
+  postgres-orders:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: orders_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata-orders:/var/lib/postgresql/data
+
+  postgres-payments:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: payments_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata-payments:/var/lib/postgresql/data
+
+  postgres-inventory:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: inventory_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5434:5432"
+    volumes:
+      - pgdata-inventory:/var/lib/postgresql/data
+
+  postgres-fulfillment:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: fulfillment_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5435:5432"
+    volumes:
+      - pgdata-fulfillment:/var/lib/postgresql/data
+
+  postgres-shipping:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: shipping_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5436:5432"
+    volumes:
+      - pgdata-shipping:/var/lib/postgresql/data
+
+  postgres-notifications:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: notifications_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5437:5432"
+    volumes:
+      - pgdata-notifications:/var/lib/postgresql/data
+
+volumes:
+  pgdata-orders:
+  pgdata-payments:
+  pgdata-inventory:
+  pgdata-fulfillment:
+  pgdata-shipping:
+  pgdata-notifications:
