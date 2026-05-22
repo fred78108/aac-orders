@@ -3,7 +3,11 @@
 from __future__ import annotations
 
 from notification.db.repository import NotificationRepository
-from notification.domain.models import Notification, NotificationChannel, NotificationStatus
+from notification.domain.models import (
+    Notification,
+    NotificationChannel,
+    NotificationStatus,
+)
 
 
 async def handle_order_event(event: dict, session_factory, _amqp_conn) -> None:
@@ -19,7 +23,9 @@ async def handle_order_event(event: dict, session_factory, _amqp_conn) -> None:
     await NotificationRepository(session_factory).save(notification)
 
 
-async def handle_payment_event(event: dict, session_factory, _amqp_conn) -> None:
+async def handle_payment_event(
+    event: dict, session_factory, _amqp_conn
+) -> None:
     order_id = event.get("order_id", "unknown")
     reason = event.get("reason")
     if reason:
@@ -43,7 +49,9 @@ async def handle_stock_event(event: dict, session_factory, _amqp_conn) -> None:
     sku = event.get("sku")
     if sku:
         subject = "Item out of stock"
-        body = f"Unfortunately, item {sku} for order {order_id} is out of stock."
+        body = (
+            f"Unfortunately, item {sku} for order {order_id} is out of stock."
+        )
     else:
         subject = "Stock reserved"
         body = f"Stock has been reserved for order {order_id}."
@@ -57,7 +65,9 @@ async def handle_stock_event(event: dict, session_factory, _amqp_conn) -> None:
     await NotificationRepository(session_factory).save(notification)
 
 
-async def handle_shipment_event(event: dict, session_factory, _amqp_conn) -> None:
+async def handle_shipment_event(
+    event: dict, session_factory, _amqp_conn
+) -> None:
     order_id = event.get("order_id", "unknown")
     tracking_number = event.get("tracking_number")
     reason = event.get("reason")

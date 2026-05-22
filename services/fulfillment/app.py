@@ -8,7 +8,10 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from fulfillment.api.routes import router
 from fulfillment.db import models as _models  # noqa: F401 — registers ORM tables
-from fulfillment.events.handlers import handle_shipment_failed, handle_stock_reserved
+from fulfillment.events.handlers import (
+    handle_shipment_failed,
+    handle_stock_reserved,
+)
 from fulfillment.settings import settings
 from shared.db import Base
 from shared.messaging import MessageConsumer
@@ -42,7 +45,9 @@ async def lifespan(app: FastAPI):
     consumer_shipment = MessageConsumer()
     await consumer_shipment.connect(settings.rabbitmq_url)
     await consumer_shipment.subscribe(
-        "fulfillment_shipment_failed_q", ["shipment.failed"], on_shipment_failed
+        "fulfillment_shipment_failed_q",
+        ["shipment.failed"],
+        on_shipment_failed,
     )
     await consumer_shipment.start()
     app.state.consumer_shipment = consumer_shipment

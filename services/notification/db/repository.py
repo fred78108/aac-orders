@@ -6,11 +6,17 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from notification.db.models import NotificationRow
-from notification.domain.models import Notification, NotificationChannel, NotificationStatus
+from notification.domain.models import (
+    Notification,
+    NotificationChannel,
+    NotificationStatus,
+)
 
 
 class NotificationRepository:
-    def __init__(self, session_factory: async_sessionmaker[AsyncSession]) -> None:
+    def __init__(
+        self, session_factory: async_sessionmaker[AsyncSession]
+    ) -> None:
         self._sf = session_factory
 
     async def save(self, notification: Notification) -> None:
@@ -29,7 +35,9 @@ class NotificationRepository:
     async def get(self, notification_id: UUID) -> Notification:
         async with self._sf() as session:
             result = await session.execute(
-                select(NotificationRow).where(NotificationRow.id == notification_id)
+                select(NotificationRow).where(
+                    NotificationRow.id == notification_id
+                )
             )
             row = result.scalar_one()
             return Notification(

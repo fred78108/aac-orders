@@ -66,7 +66,9 @@ async def lifespan(app: FastAPI):
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(title="notification-service", version="0.1.0", lifespan=lifespan)
+    app = FastAPI(
+        title="notification-service", version="0.1.0", lifespan=lifespan
+    )
     app.include_router(router)
     return app
 

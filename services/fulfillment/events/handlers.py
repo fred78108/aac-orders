@@ -13,7 +13,9 @@ from fulfillment.events.publishers import (
 from shared.events import OrderPackedEvent, OrderReturnInitiatedEvent
 
 
-async def handle_stock_reserved(event: dict, session_factory, amqp_conn) -> None:
+async def handle_stock_reserved(
+    event: dict, session_factory, amqp_conn
+) -> None:
     """Begin packing an order once stock has been reserved."""
     order_id = UUID(event["order_id"])
 
@@ -31,14 +33,18 @@ async def handle_stock_reserved(event: dict, session_factory, amqp_conn) -> None
     )
 
 
-async def handle_shipment_failed(event: dict, session_factory, amqp_conn) -> None:
+async def handle_shipment_failed(
+    event: dict, session_factory, amqp_conn
+) -> None:
     """Initiate a return when the shipping carrier reports a failure."""
     order_id = UUID(event["order_id"])
     shipment_id = UUID(event["shipment_id"])
 
     repo = FulfillmentRepository(session_factory)
     fulfillment_order = await repo.get_by_order_id(order_id)
-    await repo.update_status(fulfillment_order.id, PackingStatus.RETURNED.value)
+    await repo.update_status(
+        fulfillment_order.id, PackingStatus.RETURNED.value
+    )
 
     await publish_order_return_initiated(
         OrderReturnInitiatedEvent(

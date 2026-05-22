@@ -10,7 +10,9 @@ from shipping.domain.models import Shipment, ShipmentStatus
 
 
 class ShipmentRepository:
-    def __init__(self, session_factory: async_sessionmaker[AsyncSession]) -> None:
+    def __init__(
+        self, session_factory: async_sessionmaker[AsyncSession]
+    ) -> None:
         self._sf = session_factory
 
     async def save(self, shipment: Shipment) -> None:
