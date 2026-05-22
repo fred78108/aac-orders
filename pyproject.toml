@@ -45,7 +45,7 @@ env_list = ["py312", "lint", "type"]
 [tool.tox.env_run_base]
 description = "run tests under {env_name}"
 package = "editable"
-extras = ["dev"]
+extras = ["dev", "services"]
 commands = [["pytest", "tests"]]
 
 [tool.tox.env.lint]
