@@ -8,12 +8,12 @@ A step-by-step walkthrough for demonstrating the event-driven order fulfillment 
 
 **aac-orders** is a six-service order fulfillment backend that uses a **choreography saga** over RabbitMQ. There is no orchestrator — each service reacts to events and publishes its own. The only synchronous surface is one HTTP endpoint: `POST /orders`.
 
-The codebase ships with architecture tests, domain models, and event schemas fully defined. The service handlers and publishers are stubs (they raise `NotImplementedError`), which means the full event chain is not yet wired end-to-end. This demo covers:
+The codebase ships with architecture tests, domain models, event schemas, and fully implemented service handlers. The entire choreography saga runs end-to-end. This demo covers:
 
 1. Starting the stack and verifying infrastructure
 2. Placing an order and observing the HTTP layer
 3. Touring the RabbitMQ topology
-4. Walking the happy-path and failure flows as designed
+4. Walking the happy-path and failure flows live
 5. Showing the architecture test suite
 
 ---
@@ -98,8 +98,8 @@ curl http://localhost:8006/health   # notification-service
 
 Open the **RabbitMQ Management UI** at http://localhost:15672 (login: `guest` / `guest`). You should see:
 
-- **Connections** tab: six consumer connections (one per service)
-- **Queues** tab: six queues, each with at least one consumer
+- **Connections** tab: consumer connections from all six services
+- **Queues** tab: eleven queues (services with multiple subscriptions get one queue per binding), each with at least one consumer
 - **Exchanges** tab: the exchange bindings that define which service receives which event
 
 ---
@@ -194,15 +194,9 @@ Event-specific payloads:
 | `order.packed` | `order_id`, `fulfillment_id` |
 | `shipment.dispatched` | `order_id`, `shipment_id`, `tracking_number` |
 
-### Order status progression
+### Order status
 
-As each event is processed, `order-service` updates the order record:
-
-```
-PENDING → PAYMENT_PROCESSING → PAID → PACKED → DISPATCHED
-```
-
-Inspect the final state:
+The order record is written by order-service alone: it is created with status `pending` and updated to `cancelled` if a `payment.failed` event arrives. Every other service owns its own database and stores its own state (payment, reservation, fulfillment order, shipment).
 
 ```bash
 psql -h localhost -p 5432 -U postgres -d orders_db \
@@ -219,14 +213,19 @@ Open http://localhost:15672 and watch during a `POST /orders` call.
 
 The main exchange uses **topic routing**. Each queue is bound to specific routing keys:
 
-| Queue | Bound routing keys |
+| Queue | Bound routing key |
 |---|---|
-| `order-service_queue` | `payment.failed` |
-| `payment-service_queue` | `order.created`, `stock.insufficient` |
-| `inventory-service_queue` | `payment.captured` |
-| `fulfillment-service_queue` | `stock.reserved`, `shipment.failed` |
-| `shipping-service_queue` | `order.packed` |
-| `notification-service_queue` | `order.*`, `payment.*`, `stock.*`, `shipment.*` |
+| `order_payment_failed_q` | `payment.failed` |
+| `payment_order_created_q` | `order.created` |
+| `payment_stock_insufficient_q` | `stock.insufficient` |
+| `inventory_payment_captured_q` | `payment.captured` |
+| `fulfillment_stock_reserved_q` | `stock.reserved` |
+| `fulfillment_shipment_failed_q` | `shipment.failed` |
+| `shipping_order_packed_q` | `order.packed` |
+| `notification_order_q` | `order.*` |
+| `notification_payment_q` | `payment.*` |
+| `notification_stock_q` | `stock.*` |
+| `notification_shipment_q` | `shipment.*` |
 
 ### Queues tab — what to watch
 
@@ -253,8 +252,8 @@ order-service handles payment.failed
 ```
 
 **What to observe:**
-- `payment.failed` appears in `order-service_queue`
-- Order record in `orders_db`: status = `CANCELLED`
+- `payment.failed` is consumed from `order_payment_failed_q`
+- Order record in `orders_db`: status = `cancelled`
 - No events in any other queue
 
 ### Scenario B — Insufficient stock
@@ -272,9 +271,9 @@ notification-service receives stock.insufficient
 ```
 
 **What to observe:**
-- `stock.insufficient` routes to both `payment-service_queue` and `notification-service_queue`
+- `stock.insufficient` is consumed from both `payment_stock_insufficient_q` and `notification_stock_q`
 - `payment.refund_requested` published by payment-service
-- Payment record in `payments_db`: status moves toward `REFUNDED`
+- Payment record in `payments_db`: status = `refunded`
 
 ### Scenario C — Shipment fails
 
@@ -291,9 +290,9 @@ notification-service receives shipment.failed
 ```
 
 **What to observe:**
-- `shipment.failed` routes to both `fulfillment-service_queue` and `notification-service_queue`
-- `order.return_initiated` published — this would trigger warehouse intake in a complete implementation
-- Fulfillment record in `fulfillment_db`: status = `RETURNED`
+- `shipment.failed` is consumed from both `fulfillment_shipment_failed_q` and `notification_shipment_q`
+- `order.return_initiated` published by fulfillment-service to signal warehouse intake
+- Fulfillment record in `fulfillment_db`: status = `returned`
 
 ---
 
@@ -375,7 +374,7 @@ Key test files:
 | `tests/services/test_shipping_service.py` | Handles order.packed, publishes shipment.dispatched and shipment.failed |
 | `tests/services/test_notification_service.py` | Subscribes to all four event namespaces |
 
-These tests describe the **intended behavior** of each service. Running them before implementing handlers gives you a red/green baseline for TDD.
+All tests pass against the complete implementation.
 
 ---
 
@@ -383,26 +382,26 @@ These tests describe the **intended behavior** of each service. Running them bef
 
 ### Option A — Web dashboard (recommended, no terminal required for audience)
 
-1. **`docker compose up --build`** — narrate the six services starting independently
+1. **`docker compose up --build`** — narrate the six services starting independently; point out that each waits for its database and RabbitMQ to be healthy before starting
 2. **Open http://localhost:9000** — show the dashboard; point out the saga flow diagram and explain choreography vs. orchestration using the visual
 3. **Service Health strip** — six green dots confirm the stack is up; cross-reference with `:8001–:8006`
-4. **RabbitMQ Monitor panel** — show queue depths at zero and consumer count at 1 per queue
-5. **Click "Standard Order" preset → POST /orders** — show the HTTP response (202 or 500/TDD baseline); explain what would happen end-to-end once handlers are implemented
-6. **Click "Payment Fail" preset** — walk through Scenario A using the compensation flow diagram on the same page
-7. **Switch to terminal → `pytest -v`** — show architecture tests green, service tests red
-8. **Open one handler stub** — show the TDD starting point
+4. **RabbitMQ Monitor panel** — show eleven queues with consumer count ≥ 1 each and message depth at zero (all consumers ready)
+5. **Click "Standard Order" preset → Place Order** — show the HTTP 202 response and watch the five-step saga tracker animate as each event propagates asynchronously
+6. **Click "Multi-item" preset** — repeat; show session metrics incrementing (orders placed, events published)
+7. **Click "Payment Fail" preset** — walk through Scenario A using the compensation flow diagram on the same page
+8. **Switch to terminal → `pytest -v`** — show the full test suite green
 
 ### Option B — Terminal-first (curl + RabbitMQ UI)
 
 1. **Open the architecture diagram** (`event_flow.png`) — explain choreography vs. orchestration
-2. **`docker compose up --build`** — point out the six services starting independently
-3. **Open RabbitMQ Management UI** — show the queues and exchange bindings; explain topic routing
+2. **`docker compose up --build`** — point out the six services starting independently; each waits for its database and RabbitMQ health checks before accepting traffic
+3. **Open RabbitMQ Management UI** — show the eleven queues and exchange bindings; explain topic routing
 4. **`curl POST /orders`** — place a happy-path order; show 202 Accepted
-5. **Refresh RabbitMQ Queues tab** — trace the event pulse through each queue
-6. **Query `orders_db`** — show the status field advancing from PENDING to DISPATCHED
-7. **Place an order that triggers payment failure** — show the saga stopping early at CANCELLED
-8. **Run `pytest -v`** — show architecture tests green, service tests red (stubs not implemented)
-9. **Open one handler stub** — show the TDD starting point
+5. **Refresh RabbitMQ Queues tab** — trace the event pulse through each queue (messages appear and are consumed within milliseconds)
+6. **Query `orders_db`** — show the order row with status `pending` (created by order-service synchronously on POST)
+7. **Query `payments_db`, `inventory_db`, `fulfillment_db`, `shipping_db`** — show the cascade: each service persisted its own record as events flowed through
+8. **Query `notifications_db`** — show multiple notification rows, one per event the notification service received
+9. **Run `pytest -v`** — show the full test suite green
 
 ---
 
