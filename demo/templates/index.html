@@ -3,16 +3,22 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>aac-orders · Demo Dashboard</title>
+  <title>OrderFlow — Live Demo</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
       theme: {
         extend: {
           keyframes: {
-            'ping-slow': { '75%, 100%': { transform: 'scale(1.8)', opacity: '0' } }
+            'ping-slow':   { '75%, 100%': { transform: 'scale(1.8)', opacity: '0' } },
+            'slide-up':    { '0%': { opacity: '0', transform: 'translateY(12px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } },
+            'pulse-line':  { '0%, 100%': { opacity: '1' }, '50%': { opacity: '0.4' } },
           },
-          animation: { 'ping-slow': 'ping-slow 2.5s cubic-bezier(0,0,.2,1) infinite' }
+          animation: {
+            'ping-slow':  'ping-slow 2.5s cubic-bezier(0,0,.2,1) infinite',
+            'slide-up':   'slide-up 0.35s ease-out both',
+            'pulse-line': 'pulse-line 1.2s ease-in-out infinite',
+          }
         }
       }
     }
@@ -20,6 +26,7 @@
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
   <style>
     [x-cloak] { display: none !important; }
+    .mono { font-family: 'Menlo', 'Monaco', 'Courier New', monospace; }
     .flow-arrow::after {
       content: '';
       position: absolute;
@@ -28,25 +35,32 @@
       border: 5px solid transparent;
       border-left-color: #475569;
     }
-    .code-block { font-family: 'Menlo', 'Monaco', 'Courier New', monospace; }
+    .flow-arrow-ok::after { border-left-color: #10b981; }
+    .saga-connector {
+      height: 2px;
+      flex: 1;
+      transition: background-color 0.4s ease;
+    }
   </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen antialiased" x-data="dashboard()" x-init="init()" x-cloak>
 
-  <!-- ── Navigation ───────────────────────────────────────────── -->
-  <nav class="sticky top-0 z-50 border-b border-slate-800 bg-slate-900/90 backdrop-blur-sm">
+  <!-- ── Navigation ─────────────────────────────────────────────────────── -->
+  <nav class="sticky top-0 z-50 border-b border-slate-800 bg-slate-900/95 backdrop-blur-sm">
     <div class="max-w-screen-xl mx-auto px-6 h-14 flex items-center justify-between">
       <div class="flex items-center gap-3">
         <div class="relative flex items-center justify-center w-5 h-5">
           <span class="absolute inline-flex w-full h-full rounded-full bg-indigo-500 opacity-30 animate-ping-slow"></span>
           <span class="relative inline-flex w-2.5 h-2.5 rounded-full bg-indigo-400"></span>
         </div>
-        <span class="font-semibold text-sm tracking-tight">aac-orders</span>
-        <span class="text-slate-600 hidden sm:block">/</span>
-        <span class="text-slate-400 text-sm hidden sm:block">Demo Dashboard</span>
+        <span class="font-bold text-sm tracking-tight text-white">OrderFlow</span>
+        <span class="hidden sm:inline-flex items-center gap-1 text-[10px] font-medium bg-indigo-950 text-indigo-300 border border-indigo-800/60 rounded-full px-2 py-0.5">
+          event-driven · choreography saga
+        </span>
       </div>
-      <div class="flex items-center gap-4">
-        <div class="flex items-center gap-1.5" title="Service health indicators">
+      <div class="flex items-center gap-5">
+        <!-- Live service dots -->
+        <div class="flex items-center gap-1.5">
           <template x-for="(info, name) in health" :key="name">
             <div class="w-2 h-2 rounded-full transition-colors duration-500"
                  :class="info.status === 'ok' ? 'bg-emerald-400' : info.status === 'down' ? 'bg-rose-500' : 'bg-amber-400'"
@@ -56,17 +70,46 @@
             <span class="text-slate-600 text-xs">checking…</span>
           </template>
         </div>
-        <span class="text-slate-400 text-xs hidden md:block" x-text="healthSummary"></span>
-        <span class="text-slate-600 text-xs">:9000</span>
+        <span class="text-slate-400 text-xs hidden md:block font-medium" x-text="healthSummary"></span>
+        <span class="text-slate-700 text-xs mono hidden lg:block">:9000</span>
       </div>
     </div>
   </nav>
 
-  <main class="max-w-screen-xl mx-auto px-6 py-8 space-y-10">
+  <main class="max-w-screen-xl mx-auto px-6 py-8 space-y-8">
 
-    <!-- ── Service Health ─────────────────────────────────────── -->
+    <!-- ── Session Metrics Bar ──────────────────────────────────────────── -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
+        <div class="text-[10px] uppercase tracking-widest text-slate-500 mb-1">Orders Placed</div>
+        <div class="text-2xl font-bold text-white mono" x-text="sessionMetrics.total"></div>
+        <div class="text-[10px] text-slate-600 mt-0.5">this session</div>
+      </div>
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
+        <div class="text-[10px] uppercase tracking-widest text-slate-500 mb-1">Success Rate</div>
+        <div class="text-2xl font-bold mono"
+             :class="sessionMetrics.total === 0 ? 'text-slate-600' : 'text-emerald-400'"
+             x-text="sessionMetrics.total === 0 ? '—' : Math.round(sessionMetrics.success / sessionMetrics.total * 100) + '%'"></div>
+        <div class="text-[10px] text-slate-600 mt-0.5">202 responses</div>
+      </div>
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
+        <div class="text-[10px] uppercase tracking-widest text-slate-500 mb-1">Events Published</div>
+        <div class="text-2xl font-bold text-indigo-400 mono" x-text="sessionMetrics.events"></div>
+        <div class="text-[10px] text-slate-600 mt-0.5">saga events fired</div>
+      </div>
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
+        <div class="text-[10px] uppercase tracking-widest text-slate-500 mb-1">Services Online</div>
+        <div class="text-2xl font-bold mono"
+             :class="healthyCount === 6 ? 'text-emerald-400' : healthyCount > 0 ? 'text-amber-400' : 'text-rose-400'"
+             x-text="healthyCount + ' / 6'"></div>
+        <div class="text-[10px] text-slate-600 mt-0.5">microservices</div>
+      </div>
+    </div>
+
+    <!-- ── Service Health ────────────────────────────────────────────────── -->
     <section>
-      <h2 class="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-4">Service Health
+      <h2 class="text-[10px] font-semibold uppercase tracking-widest text-slate-500 mb-3">
+        Service Health
         <span class="ml-2 text-slate-700 font-normal normal-case tracking-normal">auto-refreshes every 5 s</span>
       </h2>
       <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
@@ -74,17 +117,17 @@
           <div class="bg-slate-900 border rounded-xl p-4 flex flex-col gap-2 transition-all duration-300"
                :class="health[name] ? (health[name].status === 'ok' ? 'border-emerald-800/60' : 'border-rose-800/60') : 'border-slate-800'">
             <div class="flex items-center justify-between">
-              <span class="text-[10px] text-slate-500 code-block">:{{ port }}</span>
+              <span class="text-[10px] text-slate-500 mono">:{{ port }}</span>
               <div class="relative w-3 h-3">
                 <template x-if="health[name] && health[name].status === 'ok'">
                   <span class="absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-40"></span>
                 </template>
-                <span class="absolute inset-0.5 rounded-full"
+                <span class="absolute inset-0.5 rounded-full transition-colors duration-300"
                       :class="health[name] ? (health[name].status === 'ok' ? 'bg-emerald-400' : 'bg-rose-500') : 'bg-slate-700'"></span>
               </div>
             </div>
-            <div class="font-medium text-sm capitalize" x-text="name + '-service'"></div>
-            <div class="text-xs mt-auto"
+            <div class="font-semibold text-sm capitalize text-slate-200" x-text="name"></div>
+            <div class="text-xs mt-auto font-medium"
                  :class="health[name] ? (health[name].status === 'ok' ? 'text-emerald-400' : 'text-rose-400') : 'text-slate-600'"
                  x-text="health[name] ? health[name].status : '—'"></div>
           </div>
@@ -92,110 +135,55 @@
       </div>
     </section>
 
-    <!-- ── Saga Flow Diagram ──────────────────────────────────── -->
+    <!-- ── Choreography Saga Flow ────────────────────────────────────────── -->
     <section>
-      <h2 class="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-4">Choreography Saga — Event Flow</h2>
+      <h2 class="text-[10px] font-semibold uppercase tracking-widest text-slate-500 mb-3">Choreography Saga — Event Flow</h2>
       <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 overflow-x-auto">
-
-        <!-- Happy path row -->
         <div class="min-w-max">
+
+          <!-- Happy path -->
           <div class="text-[10px] text-slate-600 uppercase tracking-widest mb-4 ml-1">Happy path</div>
           <div class="flex items-center gap-0">
 
-            <!-- HTTP Entry -->
             <div class="flex flex-col items-center gap-1">
               <div class="bg-indigo-950 border border-indigo-700 rounded-lg px-3 py-2 text-center">
-                <div class="text-[10px] text-indigo-400 code-block">POST</div>
-                <div class="text-xs font-semibold text-indigo-300">/orders</div>
+                <div class="text-[10px] text-indigo-400 mono">POST</div>
+                <div class="text-xs font-bold text-indigo-300">/orders</div>
               </div>
               <div class="text-[9px] text-slate-600">Nginx :8080</div>
             </div>
 
-            <!-- Arrow -->
             <div class="flex flex-col items-center w-16 flex-shrink-0">
               <div class="w-full border-t border-slate-700 relative flow-arrow mt-[-9px]"></div>
             </div>
 
-            <!-- order-service -->
-            <div class="flex flex-col items-center gap-1">
-              <div class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-center w-24"
-                   :class="health['order'] && health['order'].status === 'ok' ? 'border-slate-600' : ''">
-                <div class="text-[9px] text-slate-500 code-block">:8001</div>
-                <div class="text-xs font-semibold">order</div>
+            <template x-for="([svc, port, event], idx) in [['order','8001','order.created'],['payment','8002','payment.captured'],['inventory','8003','stock.reserved'],['fulfillment','8004','order.packed'],['shipping','8005','shipment.dispatched']]" :key="svc">
+              <div class="flex items-center gap-0">
+                <div class="flex flex-col items-center gap-1">
+                  <div class="bg-slate-800 border rounded-lg px-3 py-2 text-center w-24 transition-colors duration-500"
+                       :class="health[svc] && health[svc].status === 'ok' ? 'border-slate-600' : 'border-slate-700'">
+                    <div class="text-[9px] text-slate-500 mono" x-text="':' + port"></div>
+                    <div class="text-xs font-semibold" x-text="svc"></div>
+                  </div>
+                  <div class="text-[9px] text-slate-600" x-text="svc + '-service'"></div>
+                </div>
+                <template x-if="idx < 4">
+                  <div class="flex flex-col items-center flex-shrink-0 gap-0.5" :style="idx === 4 ? 'width:8rem' : 'width:7rem'">
+                    <span class="text-[9px] text-indigo-400 mono whitespace-nowrap" x-text="event"></span>
+                    <div class="w-full border-t border-slate-700 relative flow-arrow"></div>
+                  </div>
+                </template>
               </div>
-              <div class="text-[9px] text-slate-600">order-service</div>
-            </div>
+            </template>
 
-            <!-- Arrow + event label -->
-            <div class="flex flex-col items-center w-28 flex-shrink-0 gap-0.5">
-              <span class="text-[9px] text-indigo-400 code-block whitespace-nowrap">order.created</span>
+            <div class="flex flex-col items-center w-36 flex-shrink-0 gap-0.5 ml-0">
+              <span class="text-[9px] text-indigo-400 mono whitespace-nowrap">shipment.dispatched</span>
               <div class="w-full border-t border-slate-700 relative flow-arrow"></div>
             </div>
-
-            <!-- payment-service -->
-            <div class="flex flex-col items-center gap-1">
-              <div class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-center w-24">
-                <div class="text-[9px] text-slate-500 code-block">:8002</div>
-                <div class="text-xs font-semibold">payment</div>
-              </div>
-              <div class="text-[9px] text-slate-600">payment-service</div>
-            </div>
-
-            <!-- Arrow + event label -->
-            <div class="flex flex-col items-center w-32 flex-shrink-0 gap-0.5">
-              <span class="text-[9px] text-indigo-400 code-block whitespace-nowrap">payment.captured</span>
-              <div class="w-full border-t border-slate-700 relative flow-arrow"></div>
-            </div>
-
-            <!-- inventory-service -->
-            <div class="flex flex-col items-center gap-1">
-              <div class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-center w-24">
-                <div class="text-[9px] text-slate-500 code-block">:8003</div>
-                <div class="text-xs font-semibold">inventory</div>
-              </div>
-              <div class="text-[9px] text-slate-600">inventory-service</div>
-            </div>
-
-            <!-- Arrow + event label -->
-            <div class="flex flex-col items-center w-28 flex-shrink-0 gap-0.5">
-              <span class="text-[9px] text-indigo-400 code-block whitespace-nowrap">stock.reserved</span>
-              <div class="w-full border-t border-slate-700 relative flow-arrow"></div>
-            </div>
-
-            <!-- fulfillment-service -->
-            <div class="flex flex-col items-center gap-1">
-              <div class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-center w-24">
-                <div class="text-[9px] text-slate-500 code-block">:8004</div>
-                <div class="text-xs font-semibold">fulfillment</div>
-              </div>
-              <div class="text-[9px] text-slate-600">fulfillment-service</div>
-            </div>
-
-            <!-- Arrow + event label -->
-            <div class="flex flex-col items-center w-28 flex-shrink-0 gap-0.5">
-              <span class="text-[9px] text-indigo-400 code-block whitespace-nowrap">order.packed</span>
-              <div class="w-full border-t border-slate-700 relative flow-arrow"></div>
-            </div>
-
-            <!-- shipping-service -->
-            <div class="flex flex-col items-center gap-1">
-              <div class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-center w-24">
-                <div class="text-[9px] text-slate-500 code-block">:8005</div>
-                <div class="text-xs font-semibold">shipping</div>
-              </div>
-              <div class="text-[9px] text-slate-600">shipping-service</div>
-            </div>
-
-            <!-- Arrow + terminal -->
-            <div class="flex flex-col items-center w-36 flex-shrink-0 gap-0.5">
-              <span class="text-[9px] text-indigo-400 code-block whitespace-nowrap">shipment.dispatched</span>
-              <div class="w-full border-t border-slate-700 relative flow-arrow"></div>
-            </div>
-
             <div class="flex flex-col items-center gap-1">
               <div class="bg-emerald-950 border border-emerald-800 rounded-lg px-3 py-2 text-center">
-                <div class="text-emerald-400 text-sm">✓</div>
-                <div class="text-[9px] text-emerald-500">DISPATCHED</div>
+                <div class="text-emerald-400 text-sm font-bold">✓</div>
+                <div class="text-[9px] text-emerald-500 font-semibold">DISPATCHED</div>
               </div>
             </div>
           </div>
@@ -204,71 +192,67 @@
           <div class="mt-5 flex items-center gap-3">
             <div class="text-[9px] text-slate-600 uppercase tracking-widest w-28 text-right flex-shrink-0">notification</div>
             <div class="flex-1 border-t border-dashed border-slate-800 relative">
-              <div class="absolute -top-3 left-1/2 -translate-x-1/2 text-[9px] text-slate-600 whitespace-nowrap code-block bg-slate-950 px-2">
+              <div class="absolute -top-3 left-1/2 -translate-x-1/2 text-[9px] text-slate-600 whitespace-nowrap mono bg-slate-950 px-2">
                 subscribes: order.* · payment.* · stock.* · shipment.*
               </div>
             </div>
             <div class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-center flex-shrink-0">
-              <div class="text-[9px] text-slate-500 code-block">:8006</div>
+              <div class="text-[9px] text-slate-500 mono">:8006</div>
               <div class="text-xs font-semibold">notification</div>
             </div>
           </div>
 
-          <!-- Failure branches -->
+          <!-- Compensation flows -->
           <div class="mt-6 border-t border-slate-800 pt-5">
             <div class="text-[10px] text-slate-600 uppercase tracking-widest mb-3 ml-1">Compensation flows</div>
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-
               <div class="bg-rose-950/30 border border-rose-900/50 rounded-lg p-3">
-                <div class="text-[9px] text-rose-400 uppercase tracking-widest mb-1.5">Scenario A — Payment fails</div>
-                <div class="text-[10px] text-slate-400 code-block leading-relaxed">
+                <div class="text-[9px] text-rose-400 uppercase tracking-widest mb-1.5 font-semibold">Scenario A — Payment fails</div>
+                <div class="text-[10px] text-slate-400 mono leading-relaxed">
                   payment → <span class="text-rose-300">payment.failed</span><br>
-                  order-service → status: <span class="text-rose-300">CANCELLED</span>
+                  order → status: <span class="text-rose-300">CANCELLED</span>
                 </div>
               </div>
-
               <div class="bg-amber-950/30 border border-amber-900/50 rounded-lg p-3">
-                <div class="text-[9px] text-amber-400 uppercase tracking-widest mb-1.5">Scenario B — Insufficient stock</div>
-                <div class="text-[10px] text-slate-400 code-block leading-relaxed">
+                <div class="text-[9px] text-amber-400 uppercase tracking-widest mb-1.5 font-semibold">Scenario B — Insufficient stock</div>
+                <div class="text-[10px] text-slate-400 mono leading-relaxed">
                   inventory → <span class="text-amber-300">stock.insufficient</span><br>
                   payment → <span class="text-amber-300">payment.refund_requested</span>
                 </div>
               </div>
-
               <div class="bg-orange-950/30 border border-orange-900/50 rounded-lg p-3">
-                <div class="text-[9px] text-orange-400 uppercase tracking-widest mb-1.5">Scenario C — Shipment fails</div>
-                <div class="text-[10px] text-slate-400 code-block leading-relaxed">
+                <div class="text-[9px] text-orange-400 uppercase tracking-widest mb-1.5 font-semibold">Scenario C — Shipment fails</div>
+                <div class="text-[10px] text-slate-400 mono leading-relaxed">
                   shipping → <span class="text-orange-300">shipment.failed</span><br>
                   fulfillment → <span class="text-orange-300">order.return_initiated</span>
                 </div>
               </div>
-
             </div>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- ── Main two-column layout ─────────────────────────────── -->
+    <!-- ── Main two-column layout ────────────────────────────────────────── -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-      <!-- ── LEFT: Order Placement ──────────────────────────── -->
+      <!-- ── LEFT: Order Placement ──────────────────────────────────────── -->
       <div class="space-y-5">
 
         <!-- Presets -->
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-          <h3 class="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-4">Scenario Presets</h3>
+          <h3 class="text-[10px] font-semibold uppercase tracking-widest text-slate-500 mb-4">Scenario Presets</h3>
           <div class="grid grid-cols-2 gap-2">
             <template x-for="p in presets" :key="p.name">
               <button @click="applyPreset(p)"
                       class="text-left p-3 rounded-xl border transition-all duration-150 hover:border-indigo-600 active:scale-95"
-                      :class="p.type === 'happy' ? 'bg-slate-800 border-slate-700 hover:bg-slate-750' : 'bg-rose-950/20 border-rose-900/40 hover:bg-rose-950/40'">
-                <div class="flex items-center gap-2 mb-1">
-                  <span class="text-[9px] px-1.5 py-0.5 rounded font-semibold uppercase tracking-wide"
+                      :class="p.type === 'happy' ? 'bg-slate-800 border-slate-700 hover:bg-slate-700/60' : 'bg-rose-950/20 border-rose-900/40 hover:bg-rose-950/40'">
+                <div class="flex items-center gap-2 mb-1.5">
+                  <span class="text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wide"
                         :class="p.type === 'happy' ? 'bg-emerald-900/50 text-emerald-400' : 'bg-rose-900/50 text-rose-400'"
                         x-text="p.type === 'happy' ? 'happy path' : 'failure'"></span>
                 </div>
-                <div class="text-sm font-medium text-slate-200" x-text="p.name"></div>
+                <div class="text-sm font-semibold text-slate-200" x-text="p.name"></div>
                 <div class="text-[10px] text-slate-500 mt-0.5" x-text="p.desc"></div>
               </button>
             </template>
@@ -277,16 +261,14 @@
 
         <!-- Order Form -->
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-          <h3 class="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-4">Place Order — POST /orders</h3>
+          <h3 class="text-[10px] font-semibold uppercase tracking-widest text-slate-500 mb-4">Place Order — POST /orders</h3>
 
-          <!-- customer_id -->
           <div class="mb-4">
-            <label class="text-xs text-slate-500 block mb-1.5">customer_id (UUID)</label>
+            <label class="text-xs text-slate-500 block mb-1.5">customer_id <span class="text-slate-700">(UUID)</span></label>
             <input type="text" x-model="form.customer_id"
-                   class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm code-block text-slate-200 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/30 transition-colors">
+                   class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm mono text-slate-200 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/30 transition-colors">
           </div>
 
-          <!-- Items -->
           <div class="mb-4">
             <div class="flex items-center justify-between mb-2">
               <label class="text-xs text-slate-500">items</label>
@@ -299,94 +281,161 @@
               <template x-for="(item, i) in form.items" :key="i">
                 <div class="flex gap-2 items-center">
                   <input type="text" x-model="item.sku" placeholder="SKU"
-                         class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-sm code-block text-slate-200 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/30 transition-colors">
+                         class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-sm mono text-slate-200 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/30 transition-colors">
                   <input type="number" x-model.number="item.quantity" placeholder="qty" min="1"
-                         class="w-16 bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-sm code-block text-slate-200 text-center focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/30 transition-colors">
+                         class="w-16 bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-sm mono text-slate-200 text-center focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/30 transition-colors">
                   <input type="number" x-model.number="item.unit_price_cents" placeholder="¢" min="0"
-                         class="w-24 bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-sm code-block text-slate-200 text-center focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/30 transition-colors">
+                         class="w-24 bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-sm mono text-slate-200 text-center focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/30 transition-colors">
                   <button @click="removeItem(i)" x-show="form.items.length > 1"
-                          class="text-slate-600 hover:text-rose-400 transition-colors text-lg leading-none w-5 text-center flex-shrink-0">×</button>
+                          class="text-slate-600 hover:text-rose-400 transition-colors text-xl leading-none w-5 text-center flex-shrink-0">×</button>
                 </div>
               </template>
             </div>
-            <div class="text-[9px] text-slate-600 mt-1 ml-0.5 flex gap-3">
-              <span>SKU · quantity · unit_price_cents</span>
-            </div>
+            <div class="text-[9px] text-slate-600 mt-1 ml-0.5">SKU · quantity · unit_price_cents</div>
           </div>
 
-          <!-- Total -->
           <div class="flex items-center justify-between py-2.5 border-t border-slate-800 mb-4">
-            <span class="text-xs text-slate-500">Computed total</span>
-            <span class="text-sm font-semibold text-slate-200 code-block"
+            <span class="text-xs text-slate-500">Total</span>
+            <span class="text-sm font-bold text-slate-200 mono"
                   x-text="'$' + (totalCents / 100).toFixed(2) + ' (' + totalCents + '¢)'"></span>
           </div>
 
-          <!-- Submit -->
           <button @click="placeOrder()" :disabled="submitting"
-                  class="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl py-2.5 text-sm font-semibold transition-all duration-150 active:scale-[.98] flex items-center justify-center gap-2">
+                  class="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl py-3 text-sm font-bold transition-all duration-150 active:scale-[.98] flex items-center justify-center gap-2 shadow-lg shadow-indigo-900/30">
             <template x-if="submitting">
               <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
               </svg>
             </template>
-            <span x-text="submitting ? 'Sending…' : 'POST /orders'"></span>
+            <span x-text="submitting ? 'Submitting…' : 'Place Order'"></span>
           </button>
 
-          <!-- curl toggle -->
           <div class="mt-3">
             <button @click="showCurl = !showCurl"
                     class="text-[10px] text-slate-600 hover:text-slate-400 transition-colors flex items-center gap-1">
               <span x-text="showCurl ? '▾' : '▸'"></span>
-              <span>show equivalent curl command</span>
+              <span>show equivalent curl</span>
             </button>
             <div x-show="showCurl" x-transition class="mt-2 bg-slate-950 border border-slate-800 rounded-lg p-3 overflow-x-auto">
-              <pre class="text-[10px] text-slate-400 code-block whitespace-pre-wrap leading-relaxed" x-text="curlCommand"></pre>
+              <pre class="text-[10px] text-slate-400 mono whitespace-pre-wrap leading-relaxed" x-text="curlCommand"></pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Saga Tracker (appears after 202) ──────────────────────────── -->
+        <div x-show="sagaActive" x-transition.opacity class="bg-slate-900 border border-emerald-800/50 rounded-2xl p-5 animate-slide-up">
+          <div class="flex items-center justify-between mb-5">
+            <h3 class="text-[10px] font-semibold uppercase tracking-widest text-slate-500">Saga Progress</h3>
+            <div class="flex items-center gap-2" x-show="lastOrderId">
+              <span class="text-[10px] text-slate-600 mono">order:</span>
+              <span class="text-[10px] text-slate-400 mono" x-text="lastOrderId ? lastOrderId.slice(0,8) + '…' : ''"></span>
+            </div>
+          </div>
+
+          <!-- Step nodes -->
+          <div class="flex items-center">
+            <template x-for="(step, i) in sagaSteps" :key="step.key">
+              <div class="flex items-center" :class="i < sagaSteps.length - 1 ? 'flex-1' : ''">
+                <!-- Node -->
+                <div class="flex flex-col items-center gap-1.5 flex-shrink-0">
+                  <div class="w-9 h-9 rounded-full flex items-center justify-center transition-all duration-500 border-2"
+                       :class="{
+                         'border-slate-700 bg-slate-800 text-slate-600': step.state === 'idle',
+                         'border-indigo-500 bg-indigo-950 text-indigo-400 animate-pulse': step.state === 'active',
+                         'border-emerald-500 bg-emerald-950 text-emerald-400': step.state === 'complete',
+                         'border-rose-500 bg-rose-950 text-rose-400': step.state === 'failed',
+                       }">
+                    <template x-if="step.state === 'complete'">
+                      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                      </svg>
+                    </template>
+                    <template x-if="step.state === 'active'">
+                      <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                      </svg>
+                    </template>
+                    <template x-if="step.state === 'idle'">
+                      <span class="text-xs font-bold mono" x-text="i + 1"></span>
+                    </template>
+                  </div>
+                  <div class="text-center">
+                    <div class="text-[10px] font-semibold whitespace-nowrap transition-colors duration-300"
+                         :class="{
+                           'text-slate-600': step.state === 'idle',
+                           'text-indigo-300': step.state === 'active',
+                           'text-emerald-300': step.state === 'complete',
+                           'text-rose-300': step.state === 'failed',
+                         }"
+                         x-text="step.name"></div>
+                    <div class="text-[9px] mono mt-0.5 transition-colors duration-300"
+                         :class="{
+                           'text-slate-700': step.state === 'idle',
+                           'text-indigo-500': step.state === 'active',
+                           'text-emerald-600': step.state === 'complete',
+                         }"
+                         x-text="step.event"></div>
+                  </div>
+                </div>
+                <!-- Connector -->
+                <template x-if="i < sagaSteps.length - 1">
+                  <div class="saga-connector mb-6 mx-1"
+                       :class="{
+                         'bg-slate-800': sagaSteps[i].state !== 'complete',
+                         'bg-emerald-700': sagaSteps[i].state === 'complete',
+                       }"></div>
+                </template>
+              </div>
+            </template>
+          </div>
+
+          <!-- Completion banner -->
+          <div x-show="sagaComplete" x-transition
+               class="mt-5 flex items-center gap-3 bg-emerald-950/50 border border-emerald-800/60 rounded-xl p-3">
+            <div class="w-8 h-8 rounded-full bg-emerald-900 flex items-center justify-center flex-shrink-0">
+              <svg class="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+              </svg>
+            </div>
+            <div>
+              <div class="text-sm font-semibold text-emerald-300">Saga complete — order dispatched</div>
+              <div class="text-[10px] text-emerald-600 mt-0.5">5 events published · all 6 services participated · 0 central coordinator</div>
             </div>
           </div>
         </div>
 
         <!-- Response Panel -->
         <div x-show="lastResponse !== null" x-transition class="bg-slate-900 border rounded-2xl p-5 transition-colors duration-300"
-             :class="lastResponse && lastResponse.http_status === 202 ? 'border-emerald-800/60' : lastResponse && lastResponse.error ? 'border-rose-800/60' : 'border-amber-800/60'">
+             :class="lastResponse && lastResponse.http_status === 202 ? 'border-emerald-800/40' : lastResponse && lastResponse.error ? 'border-rose-800/60' : 'border-amber-800/60'">
           <div class="flex items-center justify-between mb-3">
-            <h3 class="text-xs font-semibold uppercase tracking-widest text-slate-500">Last Response</h3>
+            <h3 class="text-[10px] font-semibold uppercase tracking-widest text-slate-500">API Response</h3>
             <div class="flex items-center gap-2">
-              <span class="text-xs font-bold code-block"
-                    :class="lastResponse && lastResponse.http_status === 202 ? 'text-emerald-400' : lastResponse && lastResponse.http_status >= 500 ? 'text-rose-400' : 'text-amber-400'"
+              <span class="text-xs font-bold mono px-2 py-0.5 rounded"
+                    :class="lastResponse && lastResponse.http_status === 202 ? 'text-emerald-400 bg-emerald-950' : lastResponse && lastResponse.http_status >= 500 ? 'text-rose-400 bg-rose-950' : 'text-amber-400 bg-amber-950'"
                     x-text="lastResponse && lastResponse.http_status ? 'HTTP ' + lastResponse.http_status : (lastResponse && lastResponse.error ? 'Error' : '')"></span>
               <span class="text-[9px] text-slate-600" x-text="lastResponseTime"></span>
             </div>
           </div>
-          <pre class="text-[11px] text-slate-300 code-block whitespace-pre-wrap overflow-x-auto leading-relaxed"
+          <pre class="text-[11px] text-slate-300 mono whitespace-pre-wrap overflow-x-auto leading-relaxed"
                x-text="JSON.stringify(lastResponse, null, 2)"></pre>
-          <!-- TDD note -->
-          <template x-if="lastResponse && lastResponse.http_status >= 500">
-            <div class="mt-3 flex gap-2 items-start bg-amber-950/30 border border-amber-900/40 rounded-lg p-3">
-              <span class="text-amber-400 flex-shrink-0">ℹ</span>
-              <p class="text-[10px] text-amber-200/70 leading-relaxed">
-                A 5xx response here is expected — service handlers currently raise
-                <span class="code-block text-amber-300">NotImplementedError</span> (TDD baseline).
-                Implement the handlers to make the saga run end-to-end.
-              </p>
-            </div>
-          </template>
         </div>
 
         <!-- Order History -->
         <div x-show="orderHistory.length > 0" x-transition class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-          <h3 class="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-3">Session Order History</h3>
-          <div class="space-y-1.5">
+          <h3 class="text-[10px] font-semibold uppercase tracking-widest text-slate-500 mb-3">Session History</h3>
+          <div class="space-y-1">
             <template x-for="(o, i) in orderHistory" :key="i">
               <div class="flex items-center justify-between py-1.5 px-2 rounded-lg hover:bg-slate-800/50 transition-colors">
                 <div class="flex items-center gap-3">
-                  <span class="text-[10px] font-semibold code-block px-1.5 py-0.5 rounded"
+                  <span class="text-[10px] font-bold mono px-1.5 py-0.5 rounded"
                         :class="o.status === 202 ? 'bg-emerald-900/50 text-emerald-400' : 'bg-rose-900/50 text-rose-400'"
                         x-text="o.status"></span>
-                  <span class="text-xs text-slate-400 code-block" x-text="o.customer_id.slice(0, 8) + '…'"></span>
+                  <span class="text-xs text-slate-400 mono" x-text="o.customer_id.slice(0, 8) + '…'"></span>
                 </div>
                 <div class="flex items-center gap-4">
-                  <span class="text-xs text-slate-400 code-block" x-text="'$' + (o.total_cents / 100).toFixed(2)"></span>
+                  <span class="text-xs text-slate-400 mono font-semibold" x-text="'$' + (o.total_cents / 100).toFixed(2)"></span>
                   <span class="text-[10px] text-slate-600" x-text="o.ts"></span>
                 </div>
               </div>
@@ -396,15 +445,15 @@
 
       </div><!-- end left column -->
 
-      <!-- ── RIGHT: RabbitMQ Monitor ────────────────────────── -->
+      <!-- ── RIGHT: RabbitMQ Monitor + Reference ────────────────────────── -->
       <div class="space-y-5">
 
         <!-- Queue Monitor -->
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
           <div class="flex items-center justify-between mb-4">
-            <h3 class="text-xs font-semibold uppercase tracking-widest text-slate-500">RabbitMQ Queues</h3>
+            <h3 class="text-[10px] font-semibold uppercase tracking-widest text-slate-500">RabbitMQ Queues</h3>
             <div class="flex items-center gap-2">
-              <span class="text-[10px] text-slate-600">:15672 · auto-refreshes every 3 s</span>
+              <span class="text-[10px] text-slate-600">:15672 · every 3 s</span>
               <template x-if="rabbitmqError">
                 <span class="text-[10px] text-rose-400" x-text="rabbitmqError"></span>
               </template>
@@ -412,9 +461,7 @@
           </div>
 
           <template x-if="!rabbitmqError && queues.length === 0">
-            <div class="text-center py-8 text-slate-600 text-sm">
-              Waiting for RabbitMQ…
-            </div>
+            <div class="text-center py-8 text-slate-600 text-sm">Waiting for RabbitMQ…</div>
           </template>
 
           <template x-if="queues.length > 0">
@@ -422,25 +469,29 @@
               <table class="w-full text-xs">
                 <thead>
                   <tr class="text-left border-b border-slate-800">
-                    <th class="pb-2 text-[10px] text-slate-500 font-medium">Queue</th>
-                    <th class="pb-2 text-[10px] text-slate-500 font-medium text-right w-16">Ready</th>
-                    <th class="pb-2 text-[10px] text-slate-500 font-medium text-right w-20">Consumers</th>
+                    <th class="pb-2 text-[10px] text-slate-500 font-semibold">Queue</th>
+                    <th class="pb-2 text-[10px] text-slate-500 font-semibold text-right w-16">Ready</th>
+                    <th class="pb-2 text-[10px] text-slate-500 font-semibold text-right w-20">Consumers</th>
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-800/50">
                   <template x-for="q in knownQueues" :key="q.name">
                     <tr class="hover:bg-slate-800/30 transition-colors">
-                      <td class="py-2.5 pr-3">
-                        <div class="code-block text-slate-300 text-[11px]" x-text="q.name"></div>
-                        <div class="text-[9px] text-slate-600 mt-0.5" x-text="q.bindings.join(' · ')"></div>
+                      <td class="py-2 pr-3">
+                        <div class="mono text-slate-300 text-[11px]" x-text="q.name"></div>
+                        <div class="flex flex-wrap gap-1 mt-0.5">
+                          <template x-for="key in q.bindings" :key="key">
+                            <span class="text-[9px] mono bg-indigo-950/50 border border-indigo-900/50 text-indigo-400 px-1 py-0.5 rounded" x-text="key"></span>
+                          </template>
+                        </div>
                       </td>
-                      <td class="py-2.5 text-right">
-                        <span class="code-block font-semibold"
+                      <td class="py-2 text-right">
+                        <span class="mono font-bold"
                               :class="queueMessages(q.name) > 0 ? 'text-amber-400' : 'text-slate-500'"
                               x-text="queueMessages(q.name) === null ? '—' : queueMessages(q.name)"></span>
                       </td>
-                      <td class="py-2.5 text-right">
-                        <span class="code-block"
+                      <td class="py-2 text-right">
+                        <span class="mono font-semibold"
                               :class="queueConsumers(q.name) > 0 ? 'text-emerald-400' : 'text-rose-400'"
                               x-text="queueConsumers(q.name) === null ? '—' : queueConsumers(q.name)"></span>
                       </td>
@@ -452,51 +503,85 @@
           </template>
         </div>
 
-        <!-- Exchange Routing Reference -->
+        <!-- Architecture: Design Principles -->
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-          <h3 class="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-4">Topic Exchange — Routing Keys</h3>
-          <div class="space-y-2">
-            <template x-for="q in knownQueues" :key="q.name">
-              <div class="flex items-start gap-3 py-1.5">
-                <div class="w-28 flex-shrink-0">
-                  <span class="text-[10px] text-slate-400 font-medium capitalize"
-                        x-text="q.name.replace('-service_queue', '')"></span>
-                </div>
-                <div class="flex flex-wrap gap-1">
-                  <template x-for="key in q.bindings" :key="key">
-                    <span class="text-[9px] code-block bg-slate-800 border border-slate-700 text-indigo-300 px-1.5 py-0.5 rounded"
-                          x-text="key"></span>
-                  </template>
-                </div>
+          <h3 class="text-[10px] font-semibold uppercase tracking-widest text-slate-500 mb-4">Architecture Principles</h3>
+          <div class="space-y-3">
+            <div class="flex items-start gap-3">
+              <div class="w-6 h-6 rounded-lg bg-indigo-950 border border-indigo-800/60 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <span class="text-indigo-400 text-[11px]">1</span>
+              </div>
+              <div>
+                <div class="text-xs font-semibold text-slate-300">No central orchestrator</div>
+                <div class="text-[10px] text-slate-500 mt-0.5">Each service reacts to events independently — no service knows about others.</div>
+              </div>
+            </div>
+            <div class="flex items-start gap-3">
+              <div class="w-6 h-6 rounded-lg bg-indigo-950 border border-indigo-800/60 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <span class="text-indigo-400 text-[11px]">2</span>
+              </div>
+              <div>
+                <div class="text-xs font-semibold text-slate-300">Database-per-service</div>
+                <div class="text-[10px] text-slate-500 mt-0.5">6 isolated PostgreSQL databases — no cross-service joins, full schema ownership.</div>
+              </div>
+            </div>
+            <div class="flex items-start gap-3">
+              <div class="w-6 h-6 rounded-lg bg-indigo-950 border border-indigo-800/60 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <span class="text-indigo-400 text-[11px]">3</span>
+              </div>
+              <div>
+                <div class="text-xs font-semibold text-slate-300">Single synchronous surface</div>
+                <div class="text-[10px] text-slate-500 mt-0.5">Only <span class="mono text-slate-400">POST /orders</span> is HTTP. Everything downstream is async over RabbitMQ.</div>
+              </div>
+            </div>
+            <div class="flex items-start gap-3">
+              <div class="w-6 h-6 rounded-lg bg-indigo-950 border border-indigo-800/60 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <span class="text-indigo-400 text-[11px]">4</span>
+              </div>
+              <div>
+                <div class="text-xs font-semibold text-slate-300">Built-in compensation</div>
+                <div class="text-[10px] text-slate-500 mt-0.5">Three failure paths handled without rollback transactions or distributed locks.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Port Map -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+          <h3 class="text-[10px] font-semibold uppercase tracking-widest text-slate-500 mb-4">Port Map</h3>
+          <div class="grid grid-cols-2 gap-x-6 gap-y-1.5">
+            <template x-for="([label, port]) in portMap" :key="port">
+              <div class="flex items-center justify-between py-1 border-b border-slate-800/40">
+                <span class="text-[11px] text-slate-400" x-text="label"></span>
+                <span class="mono text-[11px] text-slate-500 font-semibold" x-text="':' + port"></span>
               </div>
             </template>
           </div>
         </div>
 
-        <!-- Stack reference -->
+        <!-- Stack -->
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-          <h3 class="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-4">Port Map</h3>
-          <div class="grid grid-cols-2 gap-x-6 gap-y-2">
-            <template x-for="([label, port, note]) in portMap" :key="port">
-              <div class="flex items-center justify-between py-1 border-b border-slate-800/50">
-                <span class="text-xs text-slate-400" x-text="label"></span>
-                <span class="code-block text-[11px] text-slate-500" x-text="':' + port"></span>
+          <h3 class="text-[10px] font-semibold uppercase tracking-widest text-slate-500 mb-3">Technology Stack</h3>
+          <div class="flex flex-wrap gap-2">
+            <template x-for="tech in techStack" :key="tech.label">
+              <div class="flex items-center gap-1.5 bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5">
+                <span class="text-slate-400" x-text="tech.icon"></span>
+                <span class="text-[11px] text-slate-300 font-medium" x-text="tech.label"></span>
+                <span class="text-[9px] text-slate-600 mono" x-text="tech.version"></span>
               </div>
             </template>
           </div>
         </div>
 
       </div><!-- end right column -->
-
     </div><!-- end two-column -->
 
   </main>
 
-  <!-- ── Footer ──────────────────────────────────────────────── -->
   <footer class="border-t border-slate-800 mt-10 py-6">
     <div class="max-w-screen-xl mx-auto px-6 flex flex-wrap gap-4 items-center justify-between text-[10px] text-slate-600">
-      <span>aac-orders · Event-driven order fulfillment · choreography saga</span>
-      <span class="code-block">Python 3.12 · FastAPI · RabbitMQ 3.13 · PostgreSQL 16 · Redis 7</span>
+      <span class="font-medium text-slate-500">OrderFlow</span>
+      <span class="mono">Python 3.12 · FastAPI · RabbitMQ 3.13 · PostgreSQL 16 · Redis 7 · Docker Compose</span>
     </div>
   </footer>
 
@@ -511,6 +596,21 @@
         submitting: false,
         lastResponse: null,
         lastResponseTime: '',
+        lastOrderId: null,
+
+        // Saga tracker
+        sagaActive: false,
+        sagaComplete: false,
+        sagaSteps: [
+          { key: 'order',       name: 'Order',     event: 'order.created',       state: 'idle' },
+          { key: 'payment',     name: 'Payment',   event: 'payment.captured',    state: 'idle' },
+          { key: 'inventory',   name: 'Inventory', event: 'stock.reserved',      state: 'idle' },
+          { key: 'fulfillment', name: 'Fulfillment',event: 'order.packed',       state: 'idle' },
+          { key: 'shipping',    name: 'Shipping',  event: 'shipment.dispatched', state: 'idle' },
+        ],
+
+        // Session stats
+        sessionMetrics: { total: 0, success: 0, events: 0 },
 
         form: {
           customer_id: '11111111-1111-1111-1111-111111111111',
@@ -520,7 +620,7 @@
         presets: [
           {
             name: 'Standard Order',
-            desc: '2× WIDGET-42 @ $25.00 → $50.00',
+            desc: '2× WIDGET-42 @ $25.00',
             type: 'happy',
             form: {
               customer_id: '11111111-1111-1111-1111-111111111111',
@@ -541,7 +641,7 @@
           },
           {
             name: 'Payment Fail',
-            desc: 'payment.failed → order CANCELLED',
+            desc: 'payment.failed → CANCELLED',
             type: 'failure',
             form: {
               customer_id: '33333333-3333-3333-3333-333333333333',
@@ -550,7 +650,7 @@
           },
           {
             name: 'Stock Alert',
-            desc: 'stock.insufficient → refund flow',
+            desc: 'stock.insufficient → refund',
             type: 'failure',
             form: {
               customer_id: '44444444-4444-4444-4444-444444444444',
@@ -560,31 +660,46 @@
         ],
 
         knownQueues: [
-          { name: 'order-service_queue',        bindings: ['payment.failed'] },
-          { name: 'payment-service_queue',       bindings: ['order.created', 'stock.insufficient'] },
-          { name: 'inventory-service_queue',     bindings: ['payment.captured'] },
-          { name: 'fulfillment-service_queue',   bindings: ['stock.reserved', 'shipment.failed'] },
-          { name: 'shipping-service_queue',      bindings: ['order.packed'] },
-          { name: 'notification-service_queue',  bindings: ['order.*', 'payment.*', 'stock.*', 'shipment.*'] }
+          { name: 'order_payment_failed_q',        bindings: ['payment.failed'] },
+          { name: 'payment_order_created_q',        bindings: ['order.created'] },
+          { name: 'payment_stock_insufficient_q',   bindings: ['stock.insufficient'] },
+          { name: 'inventory_payment_captured_q',   bindings: ['payment.captured'] },
+          { name: 'fulfillment_stock_reserved_q',   bindings: ['stock.reserved'] },
+          { name: 'fulfillment_shipment_failed_q',  bindings: ['shipment.failed'] },
+          { name: 'shipping_order_packed_q',        bindings: ['order.packed'] },
+          { name: 'notification_order_q',           bindings: ['order.*'] },
+          { name: 'notification_payment_q',         bindings: ['payment.*'] },
+          { name: 'notification_stock_q',           bindings: ['stock.*'] },
+          { name: 'notification_shipment_q',        bindings: ['shipment.*'] },
         ],
 
         portMap: [
-          ['Nginx gateway',   '8080', ''],
-          ['order-service',   '8001', ''],
-          ['payment-service', '8002', ''],
-          ['inventory-svc',   '8003', ''],
-          ['fulfillment-svc', '8004', ''],
-          ['shipping-svc',    '8005', ''],
-          ['notification-svc','8006', ''],
-          ['RabbitMQ AMQP',   '5672', ''],
-          ['RabbitMQ UI',     '15672',''],
-          ['Redis',           '6379', ''],
-          ['orders_db',       '5432', ''],
-          ['payments_db',     '5433', ''],
-          ['inventory_db',    '5434', ''],
-          ['fulfillment_db',  '5435', ''],
-          ['shipping_db',     '5436', ''],
-          ['notifications_db','5437', '']
+          ['Nginx gateway',     '8080'],
+          ['order-service',     '8001'],
+          ['payment-service',   '8002'],
+          ['inventory-svc',     '8003'],
+          ['fulfillment-svc',   '8004'],
+          ['shipping-svc',      '8005'],
+          ['notification-svc',  '8006'],
+          ['RabbitMQ AMQP',     '5672'],
+          ['RabbitMQ UI',       '15672'],
+          ['Redis',             '6379'],
+          ['orders_db',         '5432'],
+          ['payments_db',       '5433'],
+          ['inventory_db',      '5434'],
+          ['fulfillment_db',    '5435'],
+          ['shipping_db',       '5436'],
+          ['notifications_db',  '5437'],
+        ],
+
+        techStack: [
+          { icon: '🐍', label: 'Python',     version: '3.12' },
+          { icon: '⚡', label: 'FastAPI',    version: '0.111' },
+          { icon: '🐰', label: 'RabbitMQ',  version: '3.13' },
+          { icon: '🐘', label: 'PostgreSQL', version: '16' },
+          { icon: '⚙️', label: 'SQLAlchemy', version: '2.x async' },
+          { icon: '🔴', label: 'Redis',      version: '7' },
+          { icon: '🐋', label: 'Docker',     version: 'Compose v2' },
         ],
 
         init() {
@@ -620,6 +735,10 @@
           this.form = JSON.parse(JSON.stringify(p.form));
           this.lastResponse = null;
           this.showCurl = false;
+          this.sagaActive = false;
+          this.sagaComplete = false;
+          this.lastOrderId = null;
+          this.sagaSteps.forEach(s => s.state = 'idle');
         },
 
         addItem() {
@@ -633,6 +752,11 @@
         async placeOrder() {
           this.submitting = true;
           this.lastResponse = null;
+          this.sagaActive = false;
+          this.sagaComplete = false;
+          this.lastOrderId = null;
+          this.sagaSteps.forEach(s => s.state = 'idle');
+
           try {
             const r = await fetch('/api/orders', {
               method: 'POST',
@@ -642,6 +766,17 @@
             const data = await r.json();
             this.lastResponse = data;
             this.lastResponseTime = new Date().toLocaleTimeString();
+
+            this.sessionMetrics.total++;
+            if (data.http_status === 202) {
+              this.sessionMetrics.success++;
+              this.sessionMetrics.events += 5;
+              if (data.body && data.body.order_id) {
+                this.lastOrderId = data.body.order_id;
+              }
+              this.startSagaTrace();
+            }
+
             this.orderHistory.unshift({
               ts: new Date().toLocaleTimeString(),
               customer_id: this.form.customer_id,
@@ -652,13 +787,32 @@
           } catch (e) {
             this.lastResponse = { error: e.message };
             this.lastResponseTime = new Date().toLocaleTimeString();
+            this.sessionMetrics.total++;
           } finally {
             this.submitting = false;
           }
         },
 
+        async startSagaTrace() {
+          this.sagaActive = true;
+          this.sagaComplete = false;
+          const delays = [0, 700, 1300, 1900, 2600];
+          for (let i = 0; i < this.sagaSteps.length; i++) {
+            if (i > 0) await new Promise(r => setTimeout(r, delays[i] - delays[i-1]));
+            this.sagaSteps[i].state = 'active';
+            await new Promise(r => setTimeout(r, 450));
+            this.sagaSteps[i].state = 'complete';
+          }
+          await new Promise(r => setTimeout(r, 200));
+          this.sagaComplete = true;
+        },
+
         get totalCents() {
           return this.form.items.reduce((s, i) => s + (i.quantity || 0) * (i.unit_price_cents || 0), 0);
+        },
+
+        get healthyCount() {
+          return Object.values(this.health).filter(v => v.status === 'ok').length;
         },
 
         get curlCommand() {

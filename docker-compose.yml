@@ -14,7 +14,8 @@ services:
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
-      - order-service
+      order-service:
+        condition: service_started
 
   # ── Application services ──────────────────────────────────────
   order-service:
@@ -28,9 +29,12 @@ services:
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
       REDIS_URL: redis://redis:6379/0
     depends_on:
-      - postgres-orders
-      - rabbitmq
-      - redis
+      postgres-orders:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_started
 
   payment-service:
     build:
@@ -42,8 +46,10 @@ services:
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres-payments:5432/payments_db
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
     depends_on:
-      - postgres-payments
-      - rabbitmq
+      postgres-payments:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
 
   inventory-service:
     build:
@@ -55,8 +61,10 @@ services:
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres-inventory:5432/inventory_db
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
     depends_on:
-      - postgres-inventory
-      - rabbitmq
+      postgres-inventory:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
 
   fulfillment-service:
     build:
@@ -68,8 +76,10 @@ services:
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres-fulfillment:5432/fulfillment_db
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
     depends_on:
-      - postgres-fulfillment
-      - rabbitmq
+      postgres-fulfillment:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
 
   shipping-service:
     build:
@@ -81,8 +91,10 @@ services:
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres-shipping:5432/shipping_db
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
     depends_on:
-      - postgres-shipping
-      - rabbitmq
+      postgres-shipping:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
 
   notification-service:
     build:
@@ -94,8 +106,10 @@ services:
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres-notifications:5432/notifications_db
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
     depends_on:
-      - postgres-notifications
-      - rabbitmq
+      postgres-notifications:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
 
   # ── Demo dashboard ────────────────────────────────────────────
   demo-dashboard:
@@ -151,6 +165,11 @@ services:
       - "5432:5432"
     volumes:
       - pgdata-orders:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   postgres-payments:
     image: postgres:16-alpine
@@ -162,6 +181,11 @@ services:
       - "5433:5432"
     volumes:
       - pgdata-payments:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   postgres-inventory:
     image: postgres:16-alpine
@@ -173,6 +197,11 @@ services:
       - "5434:5432"
     volumes:
       - pgdata-inventory:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   postgres-fulfillment:
     image: postgres:16-alpine
@@ -184,6 +213,11 @@ services:
       - "5435:5432"
     volumes:
       - pgdata-fulfillment:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   postgres-shipping:
     image: postgres:16-alpine
@@ -195,6 +229,11 @@ services:
       - "5436:5432"
     volumes:
       - pgdata-shipping:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   postgres-notifications:
     image: postgres:16-alpine
@@ -206,6 +245,11 @@ services:
       - "5437:5432"
     volumes:
       - pgdata-notifications:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
 volumes:
   pgdata-orders:
