@@ -11,16 +11,8 @@ requires-python = ">=3.12"
 dependencies = []
 
 [project.optional-dependencies]
-docs = [
-    "diagrams>=0.24",
-]
-dev = [
-    "pytest>=8",
-    "pytest-asyncio>=0.23",
-    "ruff>=0.4",
-    "mypy>=1.10",
-    "tox>=4",
-]
+docs = ["diagrams>=0.24"]
+dev = ["pytest>=8", "pytest-asyncio>=0.23", "ruff>=0.4", "mypy>=1.10", "tox>=4"]
 services = [
     "fastapi>=0.111",
     "uvicorn[standard]>=0.29",
@@ -35,7 +27,7 @@ where = ["services"]
 
 [tool.ruff]
 target-version = "py312"
-line-length = 100
+line-length = 79
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP"]
@@ -60,10 +52,7 @@ commands = [["pytest", "tests"]]
 description = "lint and format-check with ruff"
 skip_install = true
 deps = ["ruff>=0.4"]
-commands = [
-    ["ruff", "check", "."],
-    ["ruff", "format", "--check", "."],
-]
+commands = [["ruff", "check", "."], ["ruff", "format", "--check", "."]]
 
 [tool.tox.env.type]
 description = "type-check with mypy"
