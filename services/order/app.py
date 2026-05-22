@@ -7,6 +7,7 @@ from fastapi import FastAPI
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from order.api.routes import router
+
 # Import side-effect: registers ORM tables with Base.metadata
 from order.db import models as _models  # noqa: F401
 from order.settings import settings

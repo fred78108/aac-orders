@@ -21,9 +21,7 @@ Responsibilities verified here:
 class TestInventoryServiceDiagramPresence:
     """inventory-service must appear in all relevant diagrams."""
 
-    def test_in_service_overview(
-        self, service_overview_src: str
-    ) -> None:
+    def test_in_service_overview(self, service_overview_src: str) -> None:
         """inventory-service must be in service_overview.py."""
         assert "inventory-service" in service_overview_src
 
@@ -49,15 +47,11 @@ class TestInventoryServicePorts:
         """inventory-service must be assigned port 8003."""
         assert ":8003" in deployment_src
 
-    def test_database_container_name(
-        self, deployment_src: str
-    ) -> None:
+    def test_database_container_name(self, deployment_src: str) -> None:
         """The paired DB container must be postgres-inventory."""
         assert "postgres-inventory" in deployment_src
 
-    def test_database_port_5434(
-        self, deployment_src: str
-    ) -> None:
+    def test_database_port_5434(self, deployment_src: str) -> None:
         """inventory_db must be on port 5434."""
         assert ":5434" in deployment_src
 
@@ -71,16 +65,12 @@ class TestInventoryServicePorts:
 class TestInventoryServiceEvents:
     """inventory-service event subscription and publishing rules."""
 
-    def test_subscribes_to_payment_captured(
-        self, event_flow_src: str
-    ) -> None:
+    def test_subscribes_to_payment_captured(self, event_flow_src: str) -> None:
         """inventory-service must subscribe to payment.captured."""
         assert "payment.captured" in event_flow_src
         assert "inventory_svc" in event_flow_src
 
-    def test_publishes_stock_reserved(
-        self, event_flow_src: str
-    ) -> None:
+    def test_publishes_stock_reserved(self, event_flow_src: str) -> None:
         """inventory-service must publish stock.reserved."""
         assert "stock.reserved" in event_flow_src
 
@@ -104,9 +94,7 @@ class TestInventoryServiceEvents:
 class TestInventoryServiceCompensation:
     """inventory-service failure condition must be documented."""
 
-    def test_stock_insufficient_in_readme(
-        self, arch_readme: str
-    ) -> None:
+    def test_stock_insufficient_in_readme(self, arch_readme: str) -> None:
         """stock.insufficient must appear in the README."""
         assert "stock.insufficient" in arch_readme
 

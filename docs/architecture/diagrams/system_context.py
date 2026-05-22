@@ -27,7 +27,11 @@ with Diagram(
         carrier = Server("Shipping Carrier\n(FedEx / UPS)")
         email_sms = Server("Comms Provider\n(SendGrid / Twilio)")
 
-    customer >> Edge(label="place order, track shipment\n[HTTPS/REST]") >> platform
+    (
+        customer
+        >> Edge(label="place order, track shipment\n[HTTPS/REST]")
+        >> platform
+    )
     platform >> Edge(label="authorise & capture charge\n[REST]") >> payment_gw
     platform >> Edge(label="create label, poll tracking\n[REST]") >> carrier
     platform >> Edge(label="send email / SMS\n[REST]") >> email_sms

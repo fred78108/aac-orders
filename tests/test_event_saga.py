@@ -16,6 +16,7 @@ Compensating events (failure rollback):
   stock.insufficient        → payment.refund_requested
   shipment.failed           → order.return_initiated
 """
+
 import pytest
 
 
@@ -207,23 +208,17 @@ class TestCompensatingEvents:
             f"Compensating event '{event}' not in README"
         )
 
-    def test_payment_failure_cancels_order(
-        self, arch_readme: str
-    ) -> None:
+    def test_payment_failure_cancels_order(self, arch_readme: str) -> None:
         """README must document that payment.failed cancels the order."""
         assert "payment.failed" in arch_readme
         assert "cancel" in arch_readme.lower()
 
-    def test_stock_failure_triggers_refund(
-        self, arch_readme: str
-    ) -> None:
+    def test_stock_failure_triggers_refund(self, arch_readme: str) -> None:
         """README must document the refund path for low stock."""
         assert "stock.insufficient" in arch_readme
         assert "payment.refund_requested" in arch_readme
 
-    def test_shipment_failure_triggers_return(
-        self, arch_readme: str
-    ) -> None:
+    def test_shipment_failure_triggers_return(self, arch_readme: str) -> None:
         """README must document the return path for failed shipments."""
         assert "shipment.failed" in arch_readme
         assert "order.return_initiated" in arch_readme
@@ -235,9 +230,7 @@ class TestCompensatingEvents:
 class TestChoreographyInvariants:
     """Validate structural properties of the choreography pattern."""
 
-    def test_no_orchestrator_node_defined(
-        self, event_flow_src: str
-    ) -> None:
+    def test_no_orchestrator_node_defined(self, event_flow_src: str) -> None:
         """No orchestrator variable must be assigned in the diagram.
 
         The docstring may mention 'orchestrator' in the negative sense
@@ -247,9 +240,7 @@ class TestChoreographyInvariants:
         assert "orchestrator_svc" not in event_flow_src
         assert "orchestrator =" not in event_flow_src
 
-    def test_rabbitmq_broker_present(
-        self, event_flow_src: str
-    ) -> None:
+    def test_rabbitmq_broker_present(self, event_flow_src: str) -> None:
         """RabbitMQ must be the message broker in the event flow."""
         assert "RabbitMQ" in event_flow_src
 

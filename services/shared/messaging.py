@@ -1,4 +1,5 @@
 """RabbitMQ publisher and consumer using aio_pika."""
+
 from __future__ import annotations
 
 import json
@@ -66,7 +67,10 @@ class MessageConsumer:
         self._connection: AbstractRobustConnection | None = None
         self._channel: AbstractChannel | None = None
         self._queue: aio_pika.abc.AbstractQueue | None = None
-        self._message_handler: Callable[[aio_pika.abc.AbstractIncomingMessage], Awaitable[None]] | None = None
+        self._message_handler: (
+            Callable[[aio_pika.abc.AbstractIncomingMessage], Awaitable[None]]
+            | None
+        ) = None
 
     async def connect(self, url: str) -> None:
         self._connection = await aio_pika.connect_robust(url)
@@ -88,7 +92,9 @@ class MessageConsumer:
         for rk in routing_keys:
             await self._queue.bind(exchange, routing_key=rk)
 
-        async def _on_message(message: aio_pika.abc.AbstractIncomingMessage) -> None:
+        async def _on_message(
+            message: aio_pika.abc.AbstractIncomingMessage,
+        ) -> None:
             async with message.process():
                 payload = json.loads(message.body.decode())
                 await handler(payload)

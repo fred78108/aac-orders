@@ -25,7 +25,6 @@ with Diagram(
     user = User("Developer / Browser")
 
     with Cluster("Docker Compose Network  (aac-orders_default)"):
-
         with Cluster("Ingress"):
             nginx = Nginx("nginx\n:80")
 

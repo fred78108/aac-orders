@@ -1,4 +1,5 @@
 """Outbound event publishers for inventory-service."""
+
 from shared.events import StockInsufficientEvent, StockReservedEvent
 
 

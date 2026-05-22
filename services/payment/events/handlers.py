@@ -1,4 +1,5 @@
 """Inbound event handlers for payment-service."""
+
 from __future__ import annotations
 
 from uuid import UUID
@@ -12,7 +13,9 @@ from payment.events.publishers import (
 from shared.events import PaymentCapturedEvent, PaymentRefundRequestedEvent
 
 
-async def handle_order_created(event: dict, session_factory, amqp_conn) -> None:
+async def handle_order_created(
+    event: dict, session_factory, amqp_conn
+) -> None:
     """Charge the customer when a new order is created."""
     order_id = UUID(event["order_id"])
     customer_id = UUID(event["customer_id"])
@@ -41,7 +44,9 @@ async def handle_order_created(event: dict, session_factory, amqp_conn) -> None:
     )
 
 
-async def handle_stock_insufficient(event: dict, session_factory, amqp_conn) -> None:
+async def handle_stock_insufficient(
+    event: dict, session_factory, amqp_conn
+) -> None:
     """Initiate a refund when inventory cannot fulfil the order."""
     order_id = UUID(event["order_id"])
 

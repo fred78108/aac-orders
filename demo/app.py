@@ -5,15 +5,19 @@ import httpx
 app = Flask(__name__)
 
 SERVICES: dict[str, str] = {
-    "order":        os.getenv("ORDER_SERVICE_URL",        "http://localhost:8001"),
-    "payment":      os.getenv("PAYMENT_SERVICE_URL",      "http://localhost:8002"),
-    "inventory":    os.getenv("INVENTORY_SERVICE_URL",    "http://localhost:8003"),
-    "fulfillment":  os.getenv("FULFILLMENT_SERVICE_URL",  "http://localhost:8004"),
-    "shipping":     os.getenv("SHIPPING_SERVICE_URL",     "http://localhost:8005"),
-    "notification": os.getenv("NOTIFICATION_SERVICE_URL", "http://localhost:8006"),
+    "order": os.getenv("ORDER_SERVICE_URL", "http://localhost:8001"),
+    "payment": os.getenv("PAYMENT_SERVICE_URL", "http://localhost:8002"),
+    "inventory": os.getenv("INVENTORY_SERVICE_URL", "http://localhost:8003"),
+    "fulfillment": os.getenv(
+        "FULFILLMENT_SERVICE_URL", "http://localhost:8004"
+    ),
+    "shipping": os.getenv("SHIPPING_SERVICE_URL", "http://localhost:8005"),
+    "notification": os.getenv(
+        "NOTIFICATION_SERVICE_URL", "http://localhost:8006"
+    ),
 }
 
-RABBITMQ_API  = os.getenv("RABBITMQ_URL", "http://localhost:15672") + "/api"
+RABBITMQ_API = os.getenv("RABBITMQ_URL", "http://localhost:15672") + "/api"
 RABBITMQ_AUTH = ("guest", "guest")
 ORDER_GATEWAY = os.getenv("ORDER_GATEWAY_URL", "http://localhost:8080")
 
@@ -34,8 +38,11 @@ def aggregate_health():
                 body = r.json()
             except Exception:
                 pass
-            results[name] = {"status": "ok" if r.status_code == 200 else "error",
-                             "http_status": r.status_code, **body}
+            results[name] = {
+                "status": "ok" if r.status_code == 200 else "error",
+                "http_status": r.status_code,
+                **body,
+            }
         except httpx.ConnectError:
             results[name] = {"status": "down", "error": "connection refused"}
         except httpx.TimeoutException:
@@ -57,7 +64,9 @@ def place_order():
             body = r.text
         return jsonify({"http_status": r.status_code, "body": body})
     except httpx.ConnectError:
-        return jsonify({"error": "Cannot reach order gateway — is the stack running?"}), 503
+        return jsonify(
+            {"error": "Cannot reach order gateway — is the stack running?"}
+        ), 503
     except httpx.TimeoutException:
         return jsonify({"error": "Request timed out"}), 504
     except Exception as exc:
@@ -67,7 +76,9 @@ def place_order():
 @app.route("/api/rabbitmq/queues")
 def rabbitmq_queues():
     try:
-        r = httpx.get(f"{RABBITMQ_API}/queues", auth=RABBITMQ_AUTH, timeout=3.0)
+        r = httpx.get(
+            f"{RABBITMQ_API}/queues", auth=RABBITMQ_AUTH, timeout=3.0
+        )
         return jsonify(r.json())
     except httpx.ConnectError:
         return jsonify({"error": "RabbitMQ not reachable"}), 503

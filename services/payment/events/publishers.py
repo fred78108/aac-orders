@@ -1,4 +1,5 @@
 """Outbound event publishers for payment-service."""
+
 from __future__ import annotations
 
 import json
@@ -22,7 +23,9 @@ async def publish_payment_captured(event: PaymentCapturedEvent, conn) -> None:
             "amount_cents": event.amount_cents,
         }
         await exchange.publish(
-            Message(json.dumps(payload).encode(), content_type="application/json"),
+            Message(
+                json.dumps(payload).encode(), content_type="application/json"
+            ),
             routing_key="payment.captured",
         )
 
@@ -43,6 +46,8 @@ async def publish_payment_refund_requested(
             "amount_cents": event.amount_cents,
         }
         await exchange.publish(
-            Message(json.dumps(payload).encode(), content_type="application/json"),
+            Message(
+                json.dumps(payload).encode(), content_type="application/json"
+            ),
             routing_key="payment.refund_requested",
         )

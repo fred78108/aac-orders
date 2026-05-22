@@ -5,6 +5,7 @@ All diagram source and documentation files are read once per
 pytest session and cached, so repeated fixture use across
 modules costs no extra I/O.
 """
+
 import pathlib
 
 import pytest
@@ -50,30 +51,22 @@ def generated_dir() -> pathlib.Path:
 @pytest.fixture(scope="session")
 def event_flow_src(diagrams_dir: pathlib.Path) -> str:
     """Return the source text of event_flow.py."""
-    return (diagrams_dir / "event_flow.py").read_text(
-        encoding="utf-8"
-    )
+    return (diagrams_dir / "event_flow.py").read_text(encoding="utf-8")
 
 
 @pytest.fixture(scope="session")
 def deployment_src(diagrams_dir: pathlib.Path) -> str:
     """Return the source text of deployment.py."""
-    return (diagrams_dir / "deployment.py").read_text(
-        encoding="utf-8"
-    )
+    return (diagrams_dir / "deployment.py").read_text(encoding="utf-8")
 
 
 @pytest.fixture(scope="session")
 def service_overview_src(diagrams_dir: pathlib.Path) -> str:
     """Return the source text of service_overview.py."""
-    return (diagrams_dir / "service_overview.py").read_text(
-        encoding="utf-8"
-    )
+    return (diagrams_dir / "service_overview.py").read_text(encoding="utf-8")
 
 
 @pytest.fixture(scope="session")
 def arch_readme(docs_architecture: pathlib.Path) -> str:
     """Return the text of docs/architecture/README.md."""
-    return (docs_architecture / "README.md").read_text(
-        encoding="utf-8"
-    )
+    return (docs_architecture / "README.md").read_text(encoding="utf-8")

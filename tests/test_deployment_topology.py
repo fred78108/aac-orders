@@ -13,6 +13,7 @@ Validates deployment.py against the architecture spec:
 
 Source of truth: docs/architecture/diagrams/deployment.py
 """
+
 import pathlib
 
 import pytest
@@ -52,9 +53,7 @@ DOCKER_NETWORK = "aac-orders_default"
 class TestDeploymentFileExists:
     """The deployment diagram source must be present."""
 
-    def test_deployment_py_exists(
-        self, diagrams_dir: pathlib.Path
-    ) -> None:
+    def test_deployment_py_exists(self, diagrams_dir: pathlib.Path) -> None:
         """deployment.py must exist in the diagrams directory."""
         assert (diagrams_dir / "deployment.py").is_file()
 
@@ -71,15 +70,11 @@ class TestDeploymentFileExists:
 class TestNetworkConfiguration:
     """Validate Docker network and infrastructure service ports."""
 
-    def test_docker_network_name(
-        self, deployment_src: str
-    ) -> None:
+    def test_docker_network_name(self, deployment_src: str) -> None:
         """The compose network must be named aac-orders_default."""
         assert DOCKER_NETWORK in deployment_src
 
-    def test_nginx_ingress_present(
-        self, deployment_src: str
-    ) -> None:
+    def test_nginx_ingress_present(self, deployment_src: str) -> None:
         """Nginx must be present as the ingress container."""
         assert "nginx" in deployment_src.lower()
         assert "Nginx" in deployment_src
@@ -88,15 +83,11 @@ class TestNetworkConfiguration:
         """Nginx must be configured on port 80."""
         assert ":80" in deployment_src
 
-    def test_rabbitmq_amqp_port(
-        self, deployment_src: str
-    ) -> None:
+    def test_rabbitmq_amqp_port(self, deployment_src: str) -> None:
         """RabbitMQ AMQP port 5672 must be in the deployment."""
         assert ":5672" in deployment_src
 
-    def test_rabbitmq_management_port(
-        self, deployment_src: str
-    ) -> None:
+    def test_rabbitmq_management_port(self, deployment_src: str) -> None:
         """RabbitMQ management UI port 15672 must be present."""
         assert ":15672" in deployment_src
 
@@ -133,14 +124,10 @@ class TestServiceContainers:
             f"Port '{port}' for '{name}' not in deployment.py"
         )
 
-    def test_service_port_count(
-        self, deployment_src: str
-    ) -> None:
+    def test_service_port_count(self, deployment_src: str) -> None:
         """Exactly six distinct service ports must be present."""
         found = [p for p in SERVICE_PORTS if p in deployment_src]
-        assert len(found) == 6, (
-            f"Expected 6 service ports, found {len(found)}"
-        )
+        assert len(found) == 6, f"Expected 6 service ports, found {len(found)}"
 
     def test_service_ports_are_unique(self) -> None:
         """All service port numbers must be distinct."""
@@ -180,14 +167,10 @@ class TestDatabaseContainers:
             f"DB port '{port}' for '{container}' not found"
         )
 
-    def test_database_port_count(
-        self, deployment_src: str
-    ) -> None:
+    def test_database_port_count(self, deployment_src: str) -> None:
         """Exactly six distinct database ports must be present."""
         found = [p for p in DB_PORTS if p in deployment_src]
-        assert len(found) == 6, (
-            f"Expected 6 DB ports, found {len(found)}"
-        )
+        assert len(found) == 6, f"Expected 6 DB ports, found {len(found)}"
 
     def test_db_ports_are_unique(self) -> None:
         """All database port numbers must be distinct."""

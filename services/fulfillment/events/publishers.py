@@ -1,4 +1,5 @@
 """Outbound event publishers for fulfillment-service."""
+
 from shared.events import OrderPackedEvent, OrderReturnInitiatedEvent
 
 
@@ -7,6 +8,8 @@ async def publish_order_packed(event: OrderPackedEvent) -> None:
     raise NotImplementedError
 
 
-async def publish_order_return_initiated(event: OrderReturnInitiatedEvent) -> None:
+async def publish_order_return_initiated(
+    event: OrderReturnInitiatedEvent,
+) -> None:
     """Publish order.return_initiated when a return is triggered."""
     raise NotImplementedError

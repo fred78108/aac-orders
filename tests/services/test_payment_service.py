@@ -22,6 +22,7 @@ Responsibilities verified here:
   - Handlers: saga logic for order.created and stock.insufficient
   - App: FastAPI app structure and health endpoint
 """
+
 import json
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
@@ -30,7 +31,10 @@ from payment.app import create_app
 from payment.db.models import PaymentRow
 from payment.db.repository import PaymentRepository
 from payment.domain.models import Payment, PaymentStatus
-from payment.events.handlers import handle_order_created, handle_stock_insufficient
+from payment.events.handlers import (
+    handle_order_created,
+    handle_stock_insufficient,
+)
 from payment.events.publishers import (
     publish_payment_captured,
     publish_payment_refund_requested,
@@ -46,9 +50,7 @@ from shared.events import PaymentCapturedEvent, PaymentRefundRequestedEvent
 class TestPaymentServiceDiagramPresence:
     """payment-service must appear in all relevant diagrams."""
 
-    def test_in_service_overview(
-        self, service_overview_src: str
-    ) -> None:
+    def test_in_service_overview(self, service_overview_src: str) -> None:
         """payment-service must be defined in service_overview.py."""
         assert "payment-service" in service_overview_src
 
@@ -74,15 +76,11 @@ class TestPaymentServicePorts:
         """payment-service must be assigned port 8002."""
         assert ":8002" in deployment_src
 
-    def test_database_container_name(
-        self, deployment_src: str
-    ) -> None:
+    def test_database_container_name(self, deployment_src: str) -> None:
         """The paired DB container must be postgres-payments."""
         assert "postgres-payments" in deployment_src
 
-    def test_database_port_5433(
-        self, deployment_src: str
-    ) -> None:
+    def test_database_port_5433(self, deployment_src: str) -> None:
         """payments_db must be on port 5433."""
         assert ":5433" in deployment_src
 
@@ -96,16 +94,12 @@ class TestPaymentServicePorts:
 class TestPaymentServiceEvents:
     """payment-service event subscription and publishing rules."""
 
-    def test_subscribes_to_order_created(
-        self, event_flow_src: str
-    ) -> None:
+    def test_subscribes_to_order_created(self, event_flow_src: str) -> None:
         """payment-service must subscribe to order.created."""
         assert "order.created" in event_flow_src
         assert "payment_svc" in event_flow_src
 
-    def test_publishes_payment_captured(
-        self, event_flow_src: str
-    ) -> None:
+    def test_publishes_payment_captured(self, event_flow_src: str) -> None:
         """payment-service must publish payment.captured."""
         assert "payment.captured" in event_flow_src
 
@@ -197,7 +191,13 @@ class TestPaymentRowORM:
 
     def test_required_columns_present(self) -> None:
         cols = {c.name for c in PaymentRow.__table__.columns}
-        assert {"id", "order_id", "customer_id", "amount_cents", "status"} <= cols
+        assert {
+            "id",
+            "order_id",
+            "customer_id",
+            "amount_cents",
+            "status",
+        } <= cols
 
     def test_order_id_is_indexed(self) -> None:
         col = PaymentRow.__table__.columns["order_id"]
@@ -259,7 +259,9 @@ class TestPaymentRepository:
     async def test_save_adds_row_and_commits(self) -> None:
         session = _make_mock_session()
         repo = PaymentRepository(_make_session_factory(session))
-        payment = Payment(order_id=uuid4(), customer_id=uuid4(), amount_cents=999)
+        payment = Payment(
+            order_id=uuid4(), customer_id=uuid4(), amount_cents=999
+        )
 
         await repo.save(payment)
 
@@ -285,7 +287,9 @@ class TestPaymentRepository:
         assert added.status == "captured"
 
     async def test_get_returns_domain_payment(self) -> None:
-        payment = Payment(order_id=uuid4(), customer_id=uuid4(), amount_cents=300)
+        payment = Payment(
+            order_id=uuid4(), customer_id=uuid4(), amount_cents=300
+        )
         row = _make_payment_row(payment)
 
         session = AsyncMock()
@@ -301,7 +305,9 @@ class TestPaymentRepository:
         assert fetched.status is PaymentStatus.PENDING
 
     async def test_get_by_order_id_returns_correct_payment(self) -> None:
-        payment = Payment(order_id=uuid4(), customer_id=uuid4(), amount_cents=450)
+        payment = Payment(
+            order_id=uuid4(), customer_id=uuid4(), amount_cents=450
+        )
         row = _make_payment_row(payment)
 
         session = AsyncMock()
@@ -316,7 +322,9 @@ class TestPaymentRepository:
         assert fetched.amount_cents == 450
 
     async def test_update_status_mutates_row_and_commits(self) -> None:
-        payment = Payment(order_id=uuid4(), customer_id=uuid4(), amount_cents=100)
+        payment = Payment(
+            order_id=uuid4(), customer_id=uuid4(), amount_cents=100
+        )
         row = _make_payment_row(payment)
 
         session = AsyncMock()
@@ -366,7 +374,9 @@ class TestPaymentPublishers:
     async def test_publish_captured_payload_fields(self) -> None:
         conn, channel, exchange = _make_amqp_conn()
         oid, pid = uuid4(), uuid4()
-        event = PaymentCapturedEvent(order_id=oid, payment_id=pid, amount_cents=750)
+        event = PaymentCapturedEvent(
+            order_id=oid, payment_id=pid, amount_cents=750
+        )
 
         await publish_payment_captured(event, conn)
 
@@ -451,7 +461,9 @@ class TestHandleOrderCreated:
 
         with (
             patch("payment.events.handlers.PaymentRepository") as MockRepo,
-            patch("payment.events.handlers.publish_payment_captured") as mock_pub,
+            patch(
+                "payment.events.handlers.publish_payment_captured"
+            ) as mock_pub,
         ):
             repo_inst = AsyncMock()
             MockRepo.return_value = repo_inst
@@ -460,7 +472,9 @@ class TestHandleOrderCreated:
             session_factory = MagicMock()
             amqp_conn = MagicMock()
 
-            await handle_order_created(event_payload, session_factory, amqp_conn)
+            await handle_order_created(
+                event_payload, session_factory, amqp_conn
+            )
 
         repo_inst.save.assert_awaited_once()
         saved: Payment = repo_inst.save.call_args[0][0]
@@ -499,7 +513,9 @@ class TestHandleOrderCreated:
 
         with (
             patch("payment.events.handlers.PaymentRepository") as MockRepo,
-            patch("payment.events.handlers.publish_payment_captured") as mock_pub,
+            patch(
+                "payment.events.handlers.publish_payment_captured"
+            ) as mock_pub,
         ):
             repo_inst = AsyncMock()
             MockRepo.return_value = repo_inst
@@ -537,7 +553,9 @@ class TestHandleStockInsufficient:
     async def test_looks_up_payment_by_order_id(self) -> None:
         order_id = uuid4()
         event_payload = {"order_id": str(order_id), "sku": "WIDGET-1"}
-        existing = Payment(order_id=order_id, customer_id=uuid4(), amount_cents=400)
+        existing = Payment(
+            order_id=order_id, customer_id=uuid4(), amount_cents=400
+        )
 
         with (
             patch("payment.events.handlers.PaymentRepository") as MockRepo,
@@ -547,14 +565,18 @@ class TestHandleStockInsufficient:
             repo_inst.get_by_order_id.return_value = existing
             MockRepo.return_value = repo_inst
 
-            await handle_stock_insufficient(event_payload, MagicMock(), MagicMock())
+            await handle_stock_insufficient(
+                event_payload, MagicMock(), MagicMock()
+            )
 
         repo_inst.get_by_order_id.assert_awaited_once_with(order_id)
 
     async def test_updates_status_to_refunded(self) -> None:
         order_id = uuid4()
         event_payload = {"order_id": str(order_id), "sku": "WIDGET-1"}
-        existing = Payment(order_id=order_id, customer_id=uuid4(), amount_cents=400)
+        existing = Payment(
+            order_id=order_id, customer_id=uuid4(), amount_cents=400
+        )
 
         with (
             patch("payment.events.handlers.PaymentRepository") as MockRepo,
@@ -564,14 +586,20 @@ class TestHandleStockInsufficient:
             repo_inst.get_by_order_id.return_value = existing
             MockRepo.return_value = repo_inst
 
-            await handle_stock_insufficient(event_payload, MagicMock(), MagicMock())
+            await handle_stock_insufficient(
+                event_payload, MagicMock(), MagicMock()
+            )
 
-        repo_inst.update_status.assert_awaited_once_with(existing.id, "refunded")
+        repo_inst.update_status.assert_awaited_once_with(
+            existing.id, "refunded"
+        )
 
     async def test_publishes_refund_event_with_correct_fields(self) -> None:
         order_id = uuid4()
         event_payload = {"order_id": str(order_id), "sku": "WIDGET-1"}
-        existing = Payment(order_id=order_id, customer_id=uuid4(), amount_cents=700)
+        existing = Payment(
+            order_id=order_id, customer_id=uuid4(), amount_cents=700
+        )
 
         with (
             patch("payment.events.handlers.PaymentRepository") as MockRepo,
@@ -585,7 +613,9 @@ class TestHandleStockInsufficient:
             mock_pub.return_value = None
 
             amqp_conn = MagicMock()
-            await handle_stock_insufficient(event_payload, MagicMock(), amqp_conn)
+            await handle_stock_insufficient(
+                event_payload, MagicMock(), amqp_conn
+            )
 
         published: PaymentRefundRequestedEvent = mock_pub.call_args[0][0]
         assert published.order_id == order_id

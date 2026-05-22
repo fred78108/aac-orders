@@ -18,9 +18,7 @@ Responsibilities verified here:
 class TestOrderServiceDiagramPresence:
     """order-service must appear in all relevant diagrams."""
 
-    def test_in_service_overview(
-        self, service_overview_src: str
-    ) -> None:
+    def test_in_service_overview(self, service_overview_src: str) -> None:
         """order-service must be defined in service_overview.py."""
         assert "order-service" in service_overview_src
 
@@ -46,15 +44,11 @@ class TestOrderServicePorts:
         """order-service must be assigned port 8001."""
         assert ":8001" in deployment_src
 
-    def test_database_container_name(
-        self, deployment_src: str
-    ) -> None:
+    def test_database_container_name(self, deployment_src: str) -> None:
         """The paired DB container must be postgres-orders."""
         assert "postgres-orders" in deployment_src
 
-    def test_database_port_5432(
-        self, deployment_src: str
-    ) -> None:
+    def test_database_port_5432(self, deployment_src: str) -> None:
         """orders_db must be on the base Postgres port 5432."""
         assert ":5432" in deployment_src
 
@@ -68,15 +62,11 @@ class TestOrderServicePorts:
 class TestOrderServiceEvents:
     """order-service event publishing and subscription rules."""
 
-    def test_publishes_order_created(
-        self, event_flow_src: str
-    ) -> None:
+    def test_publishes_order_created(self, event_flow_src: str) -> None:
         """order-service must publish the order.created event."""
         assert "order.created" in event_flow_src
 
-    def test_is_http_entry_point(
-        self, event_flow_src: str
-    ) -> None:
+    def test_is_http_entry_point(self, event_flow_src: str) -> None:
         """order-service must receive the POST /orders HTTP call."""
         assert "POST /orders" in event_flow_src
 
@@ -106,15 +96,11 @@ class TestOrderServiceEvents:
 class TestOrderServiceCompensation:
     """order-service must handle the payment.failed rollback path."""
 
-    def test_payment_failed_event_documented(
-        self, arch_readme: str
-    ) -> None:
+    def test_payment_failed_event_documented(self, arch_readme: str) -> None:
         """payment.failed must appear in the README."""
         assert "payment.failed" in arch_readme
 
-    def test_order_cancellation_documented(
-        self, arch_readme: str
-    ) -> None:
+    def test_order_cancellation_documented(self, arch_readme: str) -> None:
         """README must state that order-service cancels on failure."""
         assert "cancel" in arch_readme.lower()
 

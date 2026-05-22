@@ -1,4 +1,5 @@
 """Outbound event publishers for shipping-service."""
+
 from shared.events import ShipmentDispatchedEvent, ShipmentFailedEvent
 
 

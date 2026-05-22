@@ -10,7 +10,9 @@ from payment.domain.models import Payment, PaymentStatus
 
 
 class PaymentRepository:
-    def __init__(self, session_factory: async_sessionmaker[AsyncSession]) -> None:
+    def __init__(
+        self, session_factory: async_sessionmaker[AsyncSession]
+    ) -> None:
         self._sf = session_factory
 
     async def save(self, payment: Payment) -> None:

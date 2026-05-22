@@ -21,9 +21,7 @@ Responsibilities verified here:
 class TestFulfillmentServiceDiagramPresence:
     """fulfillment-service must appear in all relevant diagrams."""
 
-    def test_in_service_overview(
-        self, service_overview_src: str
-    ) -> None:
+    def test_in_service_overview(self, service_overview_src: str) -> None:
         """fulfillment-service must be in service_overview.py."""
         assert "fulfillment-service" in service_overview_src
 
@@ -49,15 +47,11 @@ class TestFulfillmentServicePorts:
         """fulfillment-service must be assigned port 8004."""
         assert ":8004" in deployment_src
 
-    def test_database_container_name(
-        self, deployment_src: str
-    ) -> None:
+    def test_database_container_name(self, deployment_src: str) -> None:
         """The paired DB container must be postgres-fulfillment."""
         assert "postgres-fulfillment" in deployment_src
 
-    def test_database_port_5435(
-        self, deployment_src: str
-    ) -> None:
+    def test_database_port_5435(self, deployment_src: str) -> None:
         """fulfillment_db must be on port 5435."""
         assert ":5435" in deployment_src
 
@@ -71,16 +65,12 @@ class TestFulfillmentServicePorts:
 class TestFulfillmentServiceEvents:
     """fulfillment-service event subscription and publishing rules."""
 
-    def test_subscribes_to_stock_reserved(
-        self, event_flow_src: str
-    ) -> None:
+    def test_subscribes_to_stock_reserved(self, event_flow_src: str) -> None:
         """fulfillment-service must subscribe to stock.reserved."""
         assert "stock.reserved" in event_flow_src
         assert "fulfillment_svc" in event_flow_src
 
-    def test_publishes_order_packed(
-        self, event_flow_src: str
-    ) -> None:
+    def test_publishes_order_packed(self, event_flow_src: str) -> None:
         """fulfillment-service must publish order.packed."""
         assert "order.packed" in event_flow_src
 
@@ -104,15 +94,11 @@ class TestFulfillmentServiceEvents:
 class TestFulfillmentServiceCompensation:
     """fulfillment-service compensation path must be documented."""
 
-    def test_order_return_initiated_in_readme(
-        self, arch_readme: str
-    ) -> None:
+    def test_order_return_initiated_in_readme(self, arch_readme: str) -> None:
         """order.return_initiated must appear in the README."""
         assert "order.return_initiated" in arch_readme
 
-    def test_shipment_failure_triggers_return(
-        self, arch_readme: str
-    ) -> None:
+    def test_shipment_failure_triggers_return(self, arch_readme: str) -> None:
         """README must link shipment.failed to order.return_initiated."""
         assert "shipment.failed" in arch_readme
         assert "order.return_initiated" in arch_readme

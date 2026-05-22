@@ -18,7 +18,12 @@ with Diagram(
     filename="generated/service_overview",
     show=False,
     direction="LR",
-    graph_attr={"pad": "0.75", "splines": "ortho", "nodesep": "0.6", "ranksep": "1.0"},
+    graph_attr={
+        "pad": "0.75",
+        "splines": "ortho",
+        "nodesep": "0.6",
+        "ranksep": "1.0",
+    },
 ):
     customer = User("Customer")
 
@@ -64,9 +69,21 @@ with Diagram(
     gateway >> order_svc
 
     # Publishers → broker
-    for svc in [order_svc, payment_svc, inventory_svc, fulfillment_svc, shipping_svc]:
+    for svc in [
+        order_svc,
+        payment_svc,
+        inventory_svc,
+        fulfillment_svc,
+        shipping_svc,
+    ]:
         svc >> Edge(style="dashed") >> broker
 
     # Broker → subscribers
-    for svc in [payment_svc, inventory_svc, fulfillment_svc, shipping_svc, notification_svc]:
+    for svc in [
+        payment_svc,
+        inventory_svc,
+        fulfillment_svc,
+        shipping_svc,
+        notification_svc,
+    ]:
         broker >> Edge(style="dashed") >> svc

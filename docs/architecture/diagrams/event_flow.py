@@ -20,7 +20,10 @@ with Diagram(
     show=False,
     direction="LR",
     graph_attr={
-        "pad": "0.75", "splines": "curved", "nodesep": "0.5", "ranksep": "1.4"
+        "pad": "0.75",
+        "splines": "curved",
+        "nodesep": "0.5",
+        "ranksep": "1.4",
     },
 ):
     customer = User("Customer")
@@ -50,17 +53,53 @@ with Diagram(
     gateway >> Edge(label="HTTP", color="#27ae60") >> order_svc
 
     # ── Published events (service → broker) ───────────────────────────────
-    order_svc >> Edge(label="order.created", style="dashed", color="#e67e22") >> broker
-    payment_svc >> Edge(label="payment.captured", style="dashed", color="#e67e22") >> broker
-    inventory_svc >> Edge(label="stock.reserved", style="dashed", color="#e67e22") >> broker
-    fulfillment_svc >> Edge(label="order.packed", style="dashed", color="#e67e22") >> broker
-    shipping_svc >> Edge(label="shipment.dispatched", style="dashed", color="#e67e22") >> broker
+    (
+        order_svc
+        >> Edge(label="order.created", style="dashed", color="#e67e22")
+        >> broker
+    )
+    (
+        payment_svc
+        >> Edge(label="payment.captured", style="dashed", color="#e67e22")
+        >> broker
+    )
+    (
+        inventory_svc
+        >> Edge(label="stock.reserved", style="dashed", color="#e67e22")
+        >> broker
+    )
+    (
+        fulfillment_svc
+        >> Edge(label="order.packed", style="dashed", color="#e67e22")
+        >> broker
+    )
+    (
+        shipping_svc
+        >> Edge(label="shipment.dispatched", style="dashed", color="#e67e22")
+        >> broker
+    )
 
     # ── Consumed events (broker → subscriber) ─────────────────────────────
-    broker >> Edge(label="order.created", style="dashed", color="#2980b9") >> payment_svc
-    broker >> Edge(label="payment.captured", style="dashed", color="#2980b9") >> inventory_svc
-    broker >> Edge(label="stock.reserved", style="dashed", color="#2980b9") >> fulfillment_svc
-    broker >> Edge(label="order.packed", style="dashed", color="#2980b9") >> shipping_svc
+    (
+        broker
+        >> Edge(label="order.created", style="dashed", color="#2980b9")
+        >> payment_svc
+    )
+    (
+        broker
+        >> Edge(label="payment.captured", style="dashed", color="#2980b9")
+        >> inventory_svc
+    )
+    (
+        broker
+        >> Edge(label="stock.reserved", style="dashed", color="#2980b9")
+        >> fulfillment_svc
+    )
+    (
+        broker
+        >> Edge(label="order.packed", style="dashed", color="#2980b9")
+        >> shipping_svc
+    )
 
     # Notification service subscribes to all status-change events
     all_events = Edge(

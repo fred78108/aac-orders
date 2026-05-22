@@ -22,9 +22,7 @@ Responsibilities verified here:
 class TestNotificationServiceDiagramPresence:
     """notification-service must appear in all relevant diagrams."""
 
-    def test_in_service_overview(
-        self, service_overview_src: str
-    ) -> None:
+    def test_in_service_overview(self, service_overview_src: str) -> None:
         """notification-service must be in service_overview.py."""
         assert "notification-service" in service_overview_src
 
@@ -50,15 +48,11 @@ class TestNotificationServicePorts:
         """notification-service must be assigned port 8006."""
         assert ":8006" in deployment_src
 
-    def test_database_container_name(
-        self, deployment_src: str
-    ) -> None:
+    def test_database_container_name(self, deployment_src: str) -> None:
         """The paired DB container must be postgres-notifications."""
         assert "postgres-notifications" in deployment_src
 
-    def test_database_port_5437(
-        self, deployment_src: str
-    ) -> None:
+    def test_database_port_5437(self, deployment_src: str) -> None:
         """notifications_db must be on port 5437."""
         assert ":5437" in deployment_src
 
@@ -72,21 +66,15 @@ class TestNotificationServicePorts:
 class TestNotificationServiceFanOut:
     """notification-service must subscribe to all event namespaces."""
 
-    def test_subscribes_to_order_wildcard(
-        self, event_flow_src: str
-    ) -> None:
+    def test_subscribes_to_order_wildcard(self, event_flow_src: str) -> None:
         """notification-service must subscribe to order.* events."""
         assert "order.*" in event_flow_src
 
-    def test_subscribes_to_payment_wildcard(
-        self, event_flow_src: str
-    ) -> None:
+    def test_subscribes_to_payment_wildcard(self, event_flow_src: str) -> None:
         """notification-service must subscribe to payment.* events."""
         assert "payment.*" in event_flow_src
 
-    def test_subscribes_to_stock_wildcard(
-        self, event_flow_src: str
-    ) -> None:
+    def test_subscribes_to_stock_wildcard(self, event_flow_src: str) -> None:
         """notification-service must subscribe to stock.* events."""
         assert "stock.*" in event_flow_src
 
@@ -115,9 +103,7 @@ class TestNotificationServiceFanOut:
 class TestNotificationServiceInArchReadme:
     """notification-service responsibilities in the README."""
 
-    def test_notification_service_in_readme(
-        self, arch_readme: str
-    ) -> None:
+    def test_notification_service_in_readme(self, arch_readme: str) -> None:
         """notification-service must be described in the README."""
         assert "notification-service" in arch_readme
 

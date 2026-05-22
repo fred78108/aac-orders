@@ -8,7 +8,10 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from payment.api.routes import router
 from payment.db import models as _models  # noqa: F401 — registers ORM tables
-from payment.events.handlers import handle_order_created, handle_stock_insufficient
+from payment.events.handlers import (
+    handle_order_created,
+    handle_stock_insufficient,
+)
 from payment.settings import settings
 from shared.db import Base
 from shared.messaging import MessageConsumer
@@ -42,7 +45,9 @@ async def lifespan(app: FastAPI):
     consumer_stock = MessageConsumer()
     await consumer_stock.connect(settings.rabbitmq_url)
     await consumer_stock.subscribe(
-        "payment_stock_insufficient_q", ["stock.insufficient"], on_stock_insufficient
+        "payment_stock_insufficient_q",
+        ["stock.insufficient"],
+        on_stock_insufficient,
     )
     await consumer_stock.start()
     app.state.consumer_stock = consumer_stock

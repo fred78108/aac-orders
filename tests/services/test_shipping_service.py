@@ -22,9 +22,7 @@ Responsibilities verified here:
 class TestShippingServiceDiagramPresence:
     """shipping-service must appear in all relevant diagrams."""
 
-    def test_in_service_overview(
-        self, service_overview_src: str
-    ) -> None:
+    def test_in_service_overview(self, service_overview_src: str) -> None:
         """shipping-service must be in service_overview.py."""
         assert "shipping-service" in service_overview_src
 
@@ -50,15 +48,11 @@ class TestShippingServicePorts:
         """shipping-service must be assigned port 8005."""
         assert ":8005" in deployment_src
 
-    def test_database_container_name(
-        self, deployment_src: str
-    ) -> None:
+    def test_database_container_name(self, deployment_src: str) -> None:
         """The paired DB container must be postgres-shipping."""
         assert "postgres-shipping" in deployment_src
 
-    def test_database_port_5436(
-        self, deployment_src: str
-    ) -> None:
+    def test_database_port_5436(self, deployment_src: str) -> None:
         """shipping_db must be on port 5436."""
         assert ":5436" in deployment_src
 
@@ -72,16 +66,12 @@ class TestShippingServicePorts:
 class TestShippingServiceEvents:
     """shipping-service event subscription and publishing rules."""
 
-    def test_subscribes_to_order_packed(
-        self, event_flow_src: str
-    ) -> None:
+    def test_subscribes_to_order_packed(self, event_flow_src: str) -> None:
         """shipping-service must subscribe to order.packed."""
         assert "order.packed" in event_flow_src
         assert "shipping_svc" in event_flow_src
 
-    def test_publishes_shipment_dispatched(
-        self, event_flow_src: str
-    ) -> None:
+    def test_publishes_shipment_dispatched(self, event_flow_src: str) -> None:
         """shipping-service must publish shipment.dispatched."""
         assert "shipment.dispatched" in event_flow_src
 
@@ -96,9 +86,7 @@ class TestShippingServiceEvents:
             "stock.reserved",
             "order.packed",
         ]:
-            assert (
-                event_flow_src.index(earlier_event) < pos
-            ), (
+            assert event_flow_src.index(earlier_event) < pos, (
                 f"{earlier_event} should precede shipment.dispatched"
             )
 
@@ -114,9 +102,7 @@ class TestShippingServiceEvents:
 class TestShippingServiceCompensation:
     """shipping-service failure condition must be documented."""
 
-    def test_shipment_failed_in_readme(
-        self, arch_readme: str
-    ) -> None:
+    def test_shipment_failed_in_readme(self, arch_readme: str) -> None:
         """shipment.failed must appear in the README."""
         assert "shipment.failed" in arch_readme
 

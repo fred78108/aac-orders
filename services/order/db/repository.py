@@ -11,7 +11,9 @@ from order.domain.models import Order, OrderItem, OrderStatus
 
 
 class OrderRepository:
-    def __init__(self, session_factory: async_sessionmaker[AsyncSession]) -> None:
+    def __init__(
+        self, session_factory: async_sessionmaker[AsyncSession]
+    ) -> None:
         self._sf = session_factory
 
     async def save(self, order: Order) -> None:
@@ -45,14 +47,20 @@ class OrderRepository:
                 customer_id=row.customer_id,
                 status=OrderStatus(row.status),
                 items=[
-                    OrderItem(sku=i.sku, quantity=i.quantity, unit_price_cents=i.unit_price_cents)
+                    OrderItem(
+                        sku=i.sku,
+                        quantity=i.quantity,
+                        unit_price_cents=i.unit_price_cents,
+                    )
                     for i in row.items
                 ],
             )
 
     async def update_status(self, order_id: UUID, status: str) -> None:
         async with self._sf() as session:
-            result = await session.execute(select(OrderRow).where(OrderRow.id == order_id))
+            result = await session.execute(
+                select(OrderRow).where(OrderRow.id == order_id)
+            )
             row = result.scalar_one()
             row.status = status
             await session.commit()

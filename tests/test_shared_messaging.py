@@ -2,6 +2,7 @@
 
 All RabbitMQ I/O is mocked so the suite runs without a broker.
 """
+
 from __future__ import annotations
 
 import json
@@ -69,14 +70,18 @@ def _make_consumer_mocks() -> tuple[Any, Any, Any, Any]:
 class TestMessagePublisherConnect:
     async def test_connect_calls_connect_robust(self) -> None:
         publisher = MessagePublisher()
-        with patch("shared.messaging.aio_pika.connect_robust", new_callable=AsyncMock) as mock_cr:
+        with patch(
+            "shared.messaging.aio_pika.connect_robust", new_callable=AsyncMock
+        ) as mock_cr:
             await publisher.connect(AMQP_URL)
         mock_cr.assert_called_once_with(AMQP_URL)
 
     async def test_connect_stores_connection(self) -> None:
         mock_conn = AsyncMock()
         publisher = MessagePublisher()
-        with patch("shared.messaging.aio_pika.connect_robust", return_value=mock_conn):
+        with patch(
+            "shared.messaging.aio_pika.connect_robust", return_value=mock_conn
+        ):
             await publisher.connect(AMQP_URL)
         assert publisher._connection is mock_conn
 
@@ -96,7 +101,9 @@ class TestMessagePublisherPublish:
     async def test_publish_opens_channel(self) -> None:
         mock_conn, mock_channel, _ = _make_publisher_mocks()
         publisher = MessagePublisher()
-        with patch("shared.messaging.aio_pika.connect_robust", return_value=mock_conn):
+        with patch(
+            "shared.messaging.aio_pika.connect_robust", return_value=mock_conn
+        ):
             await publisher.connect(AMQP_URL)
         await publisher.publish("order.created", {})
         mock_conn.channel.assert_called_once()
@@ -106,7 +113,9 @@ class TestMessagePublisherPublish:
 
         mock_conn, mock_channel, _ = _make_publisher_mocks()
         publisher = MessagePublisher()
-        with patch("shared.messaging.aio_pika.connect_robust", return_value=mock_conn):
+        with patch(
+            "shared.messaging.aio_pika.connect_robust", return_value=mock_conn
+        ):
             await publisher.connect(AMQP_URL)
         await publisher.publish("order.created", {})
 
@@ -119,7 +128,9 @@ class TestMessagePublisherPublish:
     async def test_publish_sends_json_body(self) -> None:
         mock_conn, _, mock_exchange = _make_publisher_mocks()
         publisher = MessagePublisher()
-        with patch("shared.messaging.aio_pika.connect_robust", return_value=mock_conn):
+        with patch(
+            "shared.messaging.aio_pika.connect_robust", return_value=mock_conn
+        ):
             await publisher.connect(AMQP_URL)
 
         payload = {"order_id": "abc-123", "total_cents": 9999}
@@ -132,7 +143,9 @@ class TestMessagePublisherPublish:
     async def test_publish_uses_routing_key(self) -> None:
         mock_conn, _, mock_exchange = _make_publisher_mocks()
         publisher = MessagePublisher()
-        with patch("shared.messaging.aio_pika.connect_robust", return_value=mock_conn):
+        with patch(
+            "shared.messaging.aio_pika.connect_robust", return_value=mock_conn
+        ):
             await publisher.connect(AMQP_URL)
         await publisher.publish("payment.captured", {"x": 1})
 
@@ -142,7 +155,9 @@ class TestMessagePublisherPublish:
     async def test_publish_content_type_is_json(self) -> None:
         mock_conn, _, mock_exchange = _make_publisher_mocks()
         publisher = MessagePublisher()
-        with patch("shared.messaging.aio_pika.connect_robust", return_value=mock_conn):
+        with patch(
+            "shared.messaging.aio_pika.connect_robust", return_value=mock_conn
+        ):
             await publisher.connect(AMQP_URL)
         await publisher.publish("stock.reserved", {"reservation_id": "r1"})
 
@@ -166,7 +181,10 @@ class TestMessagePublisherPublish:
         for rk in routing_keys:
             mock_conn, _, mock_exchange = _make_publisher_mocks()
             publisher = MessagePublisher()
-            with patch("shared.messaging.aio_pika.connect_robust", return_value=mock_conn):
+            with patch(
+                "shared.messaging.aio_pika.connect_robust",
+                return_value=mock_conn,
+            ):
                 await publisher.connect(AMQP_URL)
             await publisher.publish(rk, {})
             _, kwargs = mock_exchange.publish.call_args
@@ -175,7 +193,9 @@ class TestMessagePublisherPublish:
     async def test_publish_empty_payload(self) -> None:
         mock_conn, _, mock_exchange = _make_publisher_mocks()
         publisher = MessagePublisher()
-        with patch("shared.messaging.aio_pika.connect_robust", return_value=mock_conn):
+        with patch(
+            "shared.messaging.aio_pika.connect_robust", return_value=mock_conn
+        ):
             await publisher.connect(AMQP_URL)
         await publisher.publish("order.created", {})
         msg_arg = mock_exchange.publish.call_args[0][0]
@@ -186,10 +206,16 @@ class TestMessagePublisherPublish:
 
         mock_conn, _, mock_exchange = _make_publisher_mocks()
         publisher = MessagePublisher()
-        with patch("shared.messaging.aio_pika.connect_robust", return_value=mock_conn):
+        with patch(
+            "shared.messaging.aio_pika.connect_robust", return_value=mock_conn
+        ):
             await publisher.connect(AMQP_URL)
 
-        payload = {"order_id": str(uuid.uuid4()), "total_cents": 4999, "items": [1, 2, 3]}
+        payload = {
+            "order_id": str(uuid.uuid4()),
+            "total_cents": 4999,
+            "items": [1, 2, 3],
+        }
         await publisher.publish("order.created", payload)
         msg_arg = mock_exchange.publish.call_args[0][0]
         assert json.loads(msg_arg.body.decode()) == payload
@@ -202,7 +228,9 @@ class TestMessagePublisherClose:
     async def test_close_calls_connection_close(self) -> None:
         mock_conn = AsyncMock()
         publisher = MessagePublisher()
-        with patch("shared.messaging.aio_pika.connect_robust", return_value=mock_conn):
+        with patch(
+            "shared.messaging.aio_pika.connect_robust", return_value=mock_conn
+        ):
             await publisher.connect(AMQP_URL)
         await publisher.close()
         mock_conn.close.assert_called_once()
@@ -210,7 +238,9 @@ class TestMessagePublisherClose:
     async def test_close_clears_connection_reference(self) -> None:
         mock_conn = AsyncMock()
         publisher = MessagePublisher()
-        with patch("shared.messaging.aio_pika.connect_robust", return_value=mock_conn):
+        with patch(
+            "shared.messaging.aio_pika.connect_robust", return_value=mock_conn
+        ):
             await publisher.connect(AMQP_URL)
         await publisher.close()
         assert publisher._connection is None
@@ -222,7 +252,9 @@ class TestMessagePublisherClose:
     async def test_close_twice_does_not_raise(self) -> None:
         mock_conn = AsyncMock()
         publisher = MessagePublisher()
-        with patch("shared.messaging.aio_pika.connect_robust", return_value=mock_conn):
+        with patch(
+            "shared.messaging.aio_pika.connect_robust", return_value=mock_conn
+        ):
             await publisher.connect(AMQP_URL)
         await publisher.close()
         await publisher.close()  # second close is a no-op
@@ -234,14 +266,18 @@ class TestMessagePublisherClose:
 class TestMessageConsumerConnect:
     async def test_connect_calls_connect_robust(self) -> None:
         consumer = MessageConsumer()
-        with patch("shared.messaging.aio_pika.connect_robust", new_callable=AsyncMock) as mock_cr:
+        with patch(
+            "shared.messaging.aio_pika.connect_robust", new_callable=AsyncMock
+        ) as mock_cr:
             await consumer.connect(AMQP_URL)
         mock_cr.assert_called_once_with(AMQP_URL)
 
     async def test_connect_stores_connection(self) -> None:
         mock_conn = AsyncMock()
         consumer = MessageConsumer()
-        with patch("shared.messaging.aio_pika.connect_robust", return_value=mock_conn):
+        with patch(
+            "shared.messaging.aio_pika.connect_robust", return_value=mock_conn
+        ):
             await consumer.connect(AMQP_URL)
         assert consumer._connection is mock_conn
 
@@ -264,7 +300,9 @@ class TestMessageConsumerSubscribe:
     async def test_subscribe_calls_channel(self) -> None:
         mock_conn, mock_channel, _, _ = _make_consumer_mocks()
         consumer = MessageConsumer()
-        with patch("shared.messaging.aio_pika.connect_robust", return_value=mock_conn):
+        with patch(
+            "shared.messaging.aio_pika.connect_robust", return_value=mock_conn
+        ):
             await consumer.connect(AMQP_URL)
         await consumer.subscribe("payment_q", ["order.created"], AsyncMock())
         mock_conn.channel.assert_called_once()
@@ -272,7 +310,9 @@ class TestMessageConsumerSubscribe:
     async def test_subscribe_initializes_channel(self) -> None:
         mock_conn, mock_channel, _, _ = _make_consumer_mocks()
         consumer = MessageConsumer()
-        with patch("shared.messaging.aio_pika.connect_robust", return_value=mock_conn):
+        with patch(
+            "shared.messaging.aio_pika.connect_robust", return_value=mock_conn
+        ):
             await consumer.connect(AMQP_URL)
         await consumer.subscribe("payment_q", ["order.created"], AsyncMock())
         mock_channel.initialize.assert_called_once()
@@ -282,9 +322,13 @@ class TestMessageConsumerSubscribe:
 
         mock_conn, mock_channel, _, _ = _make_consumer_mocks()
         consumer = MessageConsumer()
-        with patch("shared.messaging.aio_pika.connect_robust", return_value=mock_conn):
+        with patch(
+            "shared.messaging.aio_pika.connect_robust", return_value=mock_conn
+        ):
             await consumer.connect(AMQP_URL)
-        await consumer.subscribe("inventory_q", ["payment.captured"], AsyncMock())
+        await consumer.subscribe(
+            "inventory_q", ["payment.captured"], AsyncMock()
+        )
 
         mock_channel.declare_exchange.assert_called_once()
         args, kwargs = mock_channel.declare_exchange.call_args
@@ -295,52 +339,72 @@ class TestMessageConsumerSubscribe:
     async def test_subscribe_declares_durable_queue(self) -> None:
         mock_conn, mock_channel, _, _ = _make_consumer_mocks()
         consumer = MessageConsumer()
-        with patch("shared.messaging.aio_pika.connect_robust", return_value=mock_conn):
+        with patch(
+            "shared.messaging.aio_pika.connect_robust", return_value=mock_conn
+        ):
             await consumer.connect(AMQP_URL)
-        await consumer.subscribe("fulfillment_q", ["stock.reserved"], AsyncMock())
+        await consumer.subscribe(
+            "fulfillment_q", ["stock.reserved"], AsyncMock()
+        )
 
-        mock_channel.declare_queue.assert_called_once_with("fulfillment_q", durable=True)
+        mock_channel.declare_queue.assert_called_once_with(
+            "fulfillment_q", durable=True
+        )
 
     async def test_subscribe_binds_single_routing_key(self) -> None:
         mock_conn, _, mock_exchange, mock_queue = _make_consumer_mocks()
         consumer = MessageConsumer()
-        with patch("shared.messaging.aio_pika.connect_robust", return_value=mock_conn):
+        with patch(
+            "shared.messaging.aio_pika.connect_robust", return_value=mock_conn
+        ):
             await consumer.connect(AMQP_URL)
         await consumer.subscribe("shipping_q", ["order.packed"], AsyncMock())
 
-        mock_queue.bind.assert_called_once_with(mock_exchange, routing_key="order.packed")
+        mock_queue.bind.assert_called_once_with(
+            mock_exchange, routing_key="order.packed"
+        )
 
     async def test_subscribe_binds_multiple_routing_keys(self) -> None:
         mock_conn, _, mock_exchange, mock_queue = _make_consumer_mocks()
         consumer = MessageConsumer()
-        with patch("shared.messaging.aio_pika.connect_robust", return_value=mock_conn):
+        with patch(
+            "shared.messaging.aio_pika.connect_robust", return_value=mock_conn
+        ):
             await consumer.connect(AMQP_URL)
 
         routing_keys = ["order.created", "stock.insufficient"]
         await consumer.subscribe("payment_q", routing_keys, AsyncMock())
 
         assert mock_queue.bind.call_count == 2
-        bound = {c.kwargs["routing_key"] for c in mock_queue.bind.call_args_list}
+        bound = {
+            c.kwargs["routing_key"] for c in mock_queue.bind.call_args_list
+        }
         assert bound == set(routing_keys)
 
     async def test_subscribe_notification_wildcard_keys(self) -> None:
         """notification-service uses wildcard bindings across four namespaces."""
         mock_conn, _, mock_exchange, mock_queue = _make_consumer_mocks()
         consumer = MessageConsumer()
-        with patch("shared.messaging.aio_pika.connect_robust", return_value=mock_conn):
+        with patch(
+            "shared.messaging.aio_pika.connect_robust", return_value=mock_conn
+        ):
             await consumer.connect(AMQP_URL)
 
         wildcards = ["order.*", "payment.*", "stock.*", "shipment.*"]
         await consumer.subscribe("notification_q", wildcards, AsyncMock())
 
         assert mock_queue.bind.call_count == 4
-        bound = {c.kwargs["routing_key"] for c in mock_queue.bind.call_args_list}
+        bound = {
+            c.kwargs["routing_key"] for c in mock_queue.bind.call_args_list
+        }
         assert bound == set(wildcards)
 
     async def test_subscribe_stores_queue_reference(self) -> None:
         mock_conn, _, _, mock_queue = _make_consumer_mocks()
         consumer = MessageConsumer()
-        with patch("shared.messaging.aio_pika.connect_robust", return_value=mock_conn):
+        with patch(
+            "shared.messaging.aio_pika.connect_robust", return_value=mock_conn
+        ):
             await consumer.connect(AMQP_URL)
         await consumer.subscribe("q", ["order.created"], AsyncMock())
         assert consumer._queue is mock_queue
@@ -348,7 +412,9 @@ class TestMessageConsumerSubscribe:
     async def test_subscribe_stores_channel_reference(self) -> None:
         mock_conn, mock_channel, _, _ = _make_consumer_mocks()
         consumer = MessageConsumer()
-        with patch("shared.messaging.aio_pika.connect_robust", return_value=mock_conn):
+        with patch(
+            "shared.messaging.aio_pika.connect_robust", return_value=mock_conn
+        ):
             await consumer.connect(AMQP_URL)
         await consumer.subscribe("q", ["order.created"], AsyncMock())
         assert consumer._channel is mock_channel
@@ -360,7 +426,10 @@ class TestMessageConsumerSubscribe:
 class TestMessageConsumerStart:
     async def test_start_before_subscribe_raises(self) -> None:
         consumer = MessageConsumer()
-        with patch("shared.messaging.aio_pika.connect_robust", return_value=AsyncMock()):
+        with patch(
+            "shared.messaging.aio_pika.connect_robust",
+            return_value=AsyncMock(),
+        ):
             await consumer.connect(AMQP_URL)
         with pytest.raises(RuntimeError, match="subscribe"):
             await consumer.start()
@@ -373,7 +442,9 @@ class TestMessageConsumerStart:
     async def test_start_calls_queue_consume(self) -> None:
         mock_conn, _, _, mock_queue = _make_consumer_mocks()
         consumer = MessageConsumer()
-        with patch("shared.messaging.aio_pika.connect_robust", return_value=mock_conn):
+        with patch(
+            "shared.messaging.aio_pika.connect_robust", return_value=mock_conn
+        ):
             await consumer.connect(AMQP_URL)
         handler = AsyncMock()
         await consumer.subscribe("q", ["order.created"], handler)
@@ -383,7 +454,9 @@ class TestMessageConsumerStart:
     async def test_start_passes_message_handler_to_consume(self) -> None:
         mock_conn, _, _, mock_queue = _make_consumer_mocks()
         consumer = MessageConsumer()
-        with patch("shared.messaging.aio_pika.connect_robust", return_value=mock_conn):
+        with patch(
+            "shared.messaging.aio_pika.connect_robust", return_value=mock_conn
+        ):
             await consumer.connect(AMQP_URL)
         await consumer.subscribe("q", ["order.created"], AsyncMock())
         await consumer.start()
@@ -400,7 +473,9 @@ class TestMessageConsumerHandler:
         """The internal _on_message function deserializes JSON and calls the user handler."""
         mock_conn, _, _, mock_queue = _make_consumer_mocks()
         consumer = MessageConsumer()
-        with patch("shared.messaging.aio_pika.connect_robust", return_value=mock_conn):
+        with patch(
+            "shared.messaging.aio_pika.connect_robust", return_value=mock_conn
+        ):
             await consumer.connect(AMQP_URL)
 
         received: list[dict] = []
@@ -421,7 +496,9 @@ class TestMessageConsumerHandler:
         """_on_message must use message.process() to ack/nack automatically."""
         mock_conn, _, _, mock_queue = _make_consumer_mocks()
         consumer = MessageConsumer()
-        with patch("shared.messaging.aio_pika.connect_robust", return_value=mock_conn):
+        with patch(
+            "shared.messaging.aio_pika.connect_robust", return_value=mock_conn
+        ):
             await consumer.connect(AMQP_URL)
 
         await consumer.subscribe("q", ["order.created"], AsyncMock())
@@ -436,7 +513,9 @@ class TestMessageConsumerHandler:
     async def test_handler_propagates_user_handler_call(self) -> None:
         mock_conn, _, _, mock_queue = _make_consumer_mocks()
         consumer = MessageConsumer()
-        with patch("shared.messaging.aio_pika.connect_robust", return_value=mock_conn):
+        with patch(
+            "shared.messaging.aio_pika.connect_robust", return_value=mock_conn
+        ):
             await consumer.connect(AMQP_URL)
 
         user_handler = AsyncMock()
@@ -457,7 +536,9 @@ class TestMessageConsumerClose:
     async def test_close_calls_connection_close(self) -> None:
         mock_conn = AsyncMock()
         consumer = MessageConsumer()
-        with patch("shared.messaging.aio_pika.connect_robust", return_value=mock_conn):
+        with patch(
+            "shared.messaging.aio_pika.connect_robust", return_value=mock_conn
+        ):
             await consumer.connect(AMQP_URL)
         await consumer.close()
         mock_conn.close.assert_called_once()
@@ -465,7 +546,9 @@ class TestMessageConsumerClose:
     async def test_close_clears_connection_reference(self) -> None:
         mock_conn = AsyncMock()
         consumer = MessageConsumer()
-        with patch("shared.messaging.aio_pika.connect_robust", return_value=mock_conn):
+        with patch(
+            "shared.messaging.aio_pika.connect_robust", return_value=mock_conn
+        ):
             await consumer.connect(AMQP_URL)
         await consumer.close()
         assert consumer._connection is None
@@ -477,7 +560,9 @@ class TestMessageConsumerClose:
     async def test_close_twice_does_not_raise(self) -> None:
         mock_conn = AsyncMock()
         consumer = MessageConsumer()
-        with patch("shared.messaging.aio_pika.connect_robust", return_value=mock_conn):
+        with patch(
+            "shared.messaging.aio_pika.connect_robust", return_value=mock_conn
+        ):
             await consumer.connect(AMQP_URL)
         await consumer.close()
         await consumer.close()
