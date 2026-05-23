@@ -78,6 +78,69 @@
 
   <main class="max-w-screen-xl mx-auto px-6 py-8 space-y-8">
 
+    <!-- ── Hero / Marketing Header ──────────────────────────────────────── -->
+    <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-indigo-950/20 to-slate-900 border border-indigo-900/30 px-8 py-10">
+      <!-- Ambient glow blobs -->
+      <div class="absolute -top-16 -right-16 w-80 h-80 bg-indigo-600/8 rounded-full blur-3xl pointer-events-none"></div>
+      <div class="absolute -bottom-12 -left-12 w-64 h-64 bg-violet-600/6 rounded-full blur-3xl pointer-events-none"></div>
+
+      <div class="relative flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
+
+        <!-- Left: headline + copy -->
+        <div class="flex-1 max-w-xl">
+          <div class="inline-flex items-center gap-2 mb-5 px-3 py-1 rounded-full bg-indigo-950 border border-indigo-800/60 text-indigo-300 text-[11px] font-medium tracking-wide">
+            <span class="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse flex-shrink-0"></span>
+            Live, production-grade system
+          </div>
+          <h1 class="text-3xl sm:text-4xl font-bold text-white tracking-tight leading-tight mb-4">
+            Order fulfillment,<br>
+            <span class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-violet-400">without a coordinator</span>
+          </h1>
+          <p class="text-slate-400 text-sm leading-relaxed">
+            Six autonomous microservices choreograph a full order lifecycle — payment, inventory, fulfilment, shipping — over RabbitMQ. No central saga manager. No distributed locks. Built-in compensation for every failure path.
+          </p>
+        </div>
+
+        <!-- Right: value-prop highlights -->
+        <div class="flex flex-row lg:flex-col gap-3 flex-shrink-0 lg:w-60">
+          <div class="flex items-center gap-3 flex-1 lg:flex-none p-3 rounded-xl bg-slate-800/50 border border-slate-700/40">
+            <div class="w-8 h-8 rounded-lg bg-indigo-950 border border-indigo-800/50 flex items-center justify-center flex-shrink-0">
+              <svg class="w-4 h-4 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+              </svg>
+            </div>
+            <div>
+              <div class="text-xs font-semibold text-slate-200">6 Microservices</div>
+              <div class="text-[10px] text-slate-500 mt-0.5">DB-per-service, fully decoupled</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-3 flex-1 lg:flex-none p-3 rounded-xl bg-slate-800/50 border border-slate-700/40">
+            <div class="w-8 h-8 rounded-lg bg-emerald-950 border border-emerald-800/50 flex items-center justify-center flex-shrink-0">
+              <svg class="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+            </div>
+            <div>
+              <div class="text-xs font-semibold text-slate-200">Saga Compensation</div>
+              <div class="text-[10px] text-slate-500 mt-0.5">3 failure paths, no dist. locks</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-3 flex-1 lg:flex-none p-3 rounded-xl bg-slate-800/50 border border-slate-700/40">
+            <div class="w-8 h-8 rounded-lg bg-violet-950 border border-violet-800/50 flex items-center justify-center flex-shrink-0">
+              <svg class="w-4 h-4 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+              </svg>
+            </div>
+            <div>
+              <div class="text-xs font-semibold text-slate-200">Real-time Observability</div>
+              <div class="text-[10px] text-slate-500 mt-0.5">live queues &amp; service health</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- ── Session Metrics Bar ──────────────────────────────────────────── -->
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
       <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
@@ -357,6 +420,11 @@
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
                       </svg>
                     </template>
+                    <template x-if="step.state === 'failed'">
+                      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                      </svg>
+                    </template>
                     <template x-if="step.state === 'idle'">
                       <span class="text-xs font-bold mono" x-text="i + 1"></span>
                     </template>
@@ -375,6 +443,7 @@
                            'text-slate-700': step.state === 'idle',
                            'text-indigo-500': step.state === 'active',
                            'text-emerald-600': step.state === 'complete',
+                           'text-rose-500': step.state === 'failed',
                          }"
                          x-text="step.event"></div>
                   </div>
@@ -391,8 +460,8 @@
             </template>
           </div>
 
-          <!-- Completion banner -->
-          <div x-show="sagaComplete" x-transition
+          <!-- Completion banner — happy path -->
+          <div x-show="sagaComplete && sagaOutcome === 'complete'" x-transition
                class="mt-5 flex items-center gap-3 bg-emerald-950/50 border border-emerald-800/60 rounded-xl p-3">
             <div class="w-8 h-8 rounded-full bg-emerald-900 flex items-center justify-center flex-shrink-0">
               <svg class="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
@@ -402,6 +471,19 @@
             <div>
               <div class="text-sm font-semibold text-emerald-300">Saga complete — order dispatched</div>
               <div class="text-[10px] text-emerald-600 mt-0.5">5 events published · all 6 services participated · 0 central coordinator</div>
+            </div>
+          </div>
+          <!-- Completion banner — failure / compensation path -->
+          <div x-show="sagaComplete && sagaOutcome === 'failed'" x-transition
+               class="mt-5 flex items-center gap-3 bg-rose-950/50 border border-rose-800/60 rounded-xl p-3">
+            <div class="w-8 h-8 rounded-full bg-rose-900 flex items-center justify-center flex-shrink-0">
+              <svg class="w-4 h-4 text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+            </div>
+            <div>
+              <div class="text-sm font-semibold text-rose-300" x-text="sagaFailureMsg"></div>
+              <div class="text-[10px] text-rose-700 mt-0.5">compensation events published · no distributed locks · no central coordinator</div>
             </div>
           </div>
         </div>
@@ -578,10 +660,18 @@
 
   </main>
 
-  <footer class="border-t border-slate-800 mt-10 py-6">
-    <div class="max-w-screen-xl mx-auto px-6 flex flex-wrap gap-4 items-center justify-between text-[10px] text-slate-600">
-      <span class="font-medium text-slate-500">OrderFlow</span>
-      <span class="mono">Python 3.12 · FastAPI · RabbitMQ 3.13 · PostgreSQL 16 · Redis 7 · Docker Compose</span>
+  <footer class="border-t border-slate-800/60 mt-10 py-6">
+    <div class="max-w-screen-xl mx-auto px-6 flex flex-wrap gap-4 items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="relative flex items-center justify-center w-4 h-4">
+          <span class="absolute inline-flex w-full h-full rounded-full bg-indigo-500 opacity-20 animate-ping-slow"></span>
+          <span class="relative inline-flex w-2 h-2 rounded-full bg-indigo-400"></span>
+        </div>
+        <span class="text-[11px] font-semibold text-slate-400">OrderFlow</span>
+        <span class="text-slate-700 text-[10px]">·</span>
+        <span class="text-[10px] text-slate-600">event-driven choreography saga</span>
+      </div>
+      <span class="mono text-[10px] text-slate-700">Python 3.12 · FastAPI · RabbitMQ 3.13 · PostgreSQL 16 · Redis 7 · Docker Compose</span>
     </div>
   </footer>
 
@@ -601,16 +691,20 @@
         // Saga tracker
         sagaActive: false,
         sagaComplete: false,
+        sagaOutcome: null,
+        sagaFailureMsg: '',
         sagaSteps: [
-          { key: 'order',       name: 'Order',     event: 'order.created',       state: 'idle' },
-          { key: 'payment',     name: 'Payment',   event: 'payment.captured',    state: 'idle' },
-          { key: 'inventory',   name: 'Inventory', event: 'stock.reserved',      state: 'idle' },
-          { key: 'fulfillment', name: 'Fulfillment',event: 'order.packed',       state: 'idle' },
-          { key: 'shipping',    name: 'Shipping',  event: 'shipment.dispatched', state: 'idle' },
+          { key: 'order',       name: 'Order',     event: 'order.created',       originalEvent: 'order.created',       state: 'idle' },
+          { key: 'payment',     name: 'Payment',   event: 'payment.captured',    originalEvent: 'payment.captured',    state: 'idle' },
+          { key: 'inventory',   name: 'Inventory', event: 'stock.reserved',      originalEvent: 'stock.reserved',      state: 'idle' },
+          { key: 'fulfillment', name: 'Fulfillment',event: 'order.packed',       originalEvent: 'order.packed',        state: 'idle' },
+          { key: 'shipping',    name: 'Shipping',  event: 'shipment.dispatched', originalEvent: 'shipment.dispatched', state: 'idle' },
         ],
 
         // Session stats
         sessionMetrics: { total: 0, success: 0, events: 0 },
+
+        activePreset: null,
 
         form: {
           customer_id: '11111111-1111-1111-1111-111111111111',
@@ -622,6 +716,8 @@
             name: 'Standard Order',
             desc: '2× WIDGET-42 @ $25.00',
             type: 'happy',
+            failStep: null,
+            eventCount: 5,
             form: {
               customer_id: '11111111-1111-1111-1111-111111111111',
               items: [{ sku: 'WIDGET-42', quantity: 2, unit_price_cents: 2500 }]
@@ -631,6 +727,8 @@
             name: 'Multi-item',
             desc: '3× GADGET-99 + 1× GIZMO-7',
             type: 'happy',
+            failStep: null,
+            eventCount: 5,
             form: {
               customer_id: '22222222-2222-2222-2222-222222222222',
               items: [
@@ -643,6 +741,10 @@
             name: 'Payment Fail',
             desc: 'payment.failed → CANCELLED',
             type: 'failure',
+            failStep: 1,
+            failureEvent: 'payment.failed',
+            failureMsg: 'Saga terminated — payment declined · order → CANCELLED',
+            eventCount: 2,
             form: {
               customer_id: '33333333-3333-3333-3333-333333333333',
               items: [{ sku: 'FAIL-PAYMENT', quantity: 1, unit_price_cents: 9999 }]
@@ -652,6 +754,10 @@
             name: 'Stock Alert',
             desc: 'stock.insufficient → refund',
             type: 'failure',
+            failStep: 2,
+            failureEvent: 'stock.insufficient',
+            failureMsg: 'Saga compensating — stock insufficient · payment → refund_requested',
+            eventCount: 4,
             form: {
               customer_id: '44444444-4444-4444-4444-444444444444',
               items: [{ sku: 'WIDGET-42', quantity: 9999, unit_price_cents: 2500 }]
@@ -737,8 +843,11 @@
           this.showCurl = false;
           this.sagaActive = false;
           this.sagaComplete = false;
+          this.sagaOutcome = null;
+          this.sagaFailureMsg = '';
           this.lastOrderId = null;
-          this.sagaSteps.forEach(s => s.state = 'idle');
+          this.sagaSteps.forEach(s => { s.state = 'idle'; s.event = s.originalEvent; });
+          this.activePreset = p;
         },
 
         addItem() {
@@ -754,8 +863,10 @@
           this.lastResponse = null;
           this.sagaActive = false;
           this.sagaComplete = false;
+          this.sagaOutcome = null;
+          this.sagaFailureMsg = '';
           this.lastOrderId = null;
-          this.sagaSteps.forEach(s => s.state = 'idle');
+          this.sagaSteps.forEach(s => { s.state = 'idle'; s.event = s.originalEvent; });
 
           try {
             const r = await fetch('/api/orders', {
@@ -770,11 +881,16 @@
             this.sessionMetrics.total++;
             if (data.http_status === 202) {
               this.sessionMetrics.success++;
-              this.sessionMetrics.events += 5;
+              const p = this.activePreset;
+              this.sessionMetrics.events += p && p.eventCount != null ? p.eventCount : 5;
               if (data.body && data.body.order_id) {
                 this.lastOrderId = data.body.order_id;
               }
-              this.startSagaTrace();
+              this.startSagaTrace(
+                p && p.failStep != null ? p.failStep : null,
+                p ? p.failureEvent : null,
+                p ? p.failureMsg : null
+              );
             }
 
             this.orderHistory.unshift({
@@ -793,17 +909,25 @@
           }
         },
 
-        async startSagaTrace() {
+        async startSagaTrace(failStep, failureEvent, failureMsg) {
           this.sagaActive = true;
           this.sagaComplete = false;
           const delays = [0, 700, 1300, 1900, 2600];
-          for (let i = 0; i < this.sagaSteps.length; i++) {
+          const stepsToRun = failStep != null ? failStep + 1 : this.sagaSteps.length;
+          for (let i = 0; i < stepsToRun; i++) {
             if (i > 0) await new Promise(r => setTimeout(r, delays[i] - delays[i-1]));
             this.sagaSteps[i].state = 'active';
             await new Promise(r => setTimeout(r, 450));
-            this.sagaSteps[i].state = 'complete';
+            if (failStep != null && i === failStep) {
+              this.sagaSteps[i].event = failureEvent;
+              this.sagaSteps[i].state = 'failed';
+            } else {
+              this.sagaSteps[i].state = 'complete';
+            }
           }
           await new Promise(r => setTimeout(r, 200));
+          this.sagaOutcome = failStep != null ? 'failed' : 'complete';
+          this.sagaFailureMsg = failureMsg || '';
           this.sagaComplete = true;
         },
 

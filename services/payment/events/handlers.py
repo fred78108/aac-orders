@@ -8,9 +8,10 @@ from payment.db.repository import PaymentRepository
 from payment.domain.models import Payment, PaymentStatus
 from payment.events.publishers import (
     publish_payment_captured,
+    publish_payment_failed,
     publish_payment_refund_requested,
 )
-from shared.events import PaymentCapturedEvent, PaymentRefundRequestedEvent
+from shared.events import PaymentCapturedEvent, PaymentFailedEvent, PaymentRefundRequestedEvent
 
 
 async def handle_order_created(
@@ -30,7 +31,19 @@ async def handle_order_created(
     repo = PaymentRepository(session_factory)
     await repo.save(payment)
 
-    # Simulate payment gateway capture — always succeeds in this implementation
+    # Simulate gateway decline: a zero-amount charge is rejected
+    if total_cents == 0:
+        payment.status = PaymentStatus.FAILED
+        await repo.update_status(payment.id, payment.status.value)
+        await publish_payment_failed(
+            PaymentFailedEvent(
+                order_id=order_id,
+                reason="zero-amount charge declined",
+            ),
+            amqp_conn,
+        )
+        return
+
     payment.status = PaymentStatus.CAPTURED
     await repo.update_status(payment.id, payment.status.value)
 
