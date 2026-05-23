@@ -1,6 +1,6 @@
 # aac-orders
 
-*This is an exercise with taking an architecture as code approach to vibe coding. This is solely AI created (claude) with human interaction focused as the "architect" in the project.*
+*This is an exercise with taking an architecture as code approach to vibe coding. This is solely AI created (claude) with human interaction focused as the "architect" in the project. The associated blog post can be found at [https://chaosbyderf.com/2026/05/23/starting-with-architecture/](https://chaosbyderf.com/2026/05/23/starting-with-architecture/)*
 
 **NOT INTENDED FOR PRODUCTION USE**: This is an experiment on patterns of development. I'm sharing this publicly to support communication (blog posts, hallway conversations, etc).
 
